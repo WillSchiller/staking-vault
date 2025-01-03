@@ -17,9 +17,10 @@ contract EpochStakingVaultTest is Test {
 
     function setUp() public {
         vm.startPrank(owner);
+        vm.warp(104 days + 1);
         //setup mock token
         asset = new ERC20Mock();
-        asset.mint(tester, 10000000000);
+        asset.mint(tester, 10_000_000 * 1e18);
 
         //deploy implementation contract
         epochStakingVault = new EpochStakingVault();
@@ -32,28 +33,29 @@ contract EpochStakingVaultTest is Test {
             )
         );
         epochStakingVaultProxy = EpochStakingVault(address(proxy));
+        epochStakingVaultProxy.startEpoch();
         vm.stopPrank();
     }
 
     function testDepositAndWithdraw() public {
         vm.startPrank(tester);
 
-        asset.approve(address(epochStakingVaultProxy), 10000);
-        uint256 sharesMinted = epochStakingVaultProxy.deposit(10000, tester);
+        asset.approve(address(epochStakingVaultProxy), 10000 * 1e18);
+        uint256 sharesMinted = epochStakingVaultProxy.deposit(10000 * 1e18, tester);
 
         // Check shares and total assets
         assertEq(epochStakingVaultProxy.balanceOf(tester), sharesMinted);
-        assertEq(epochStakingVaultProxy.totalAssets(), 10000);
+        assertEq(epochStakingVaultProxy.totalAssets(), 10000 * 1e18);
         // Withdraw assets
         uint256 assetsWithdrawn = epochStakingVaultProxy.withdraw(
-            10000,
+            10000 * 1e18,
             tester,
             tester
         );
         // Check balances after withdrawal
         assertEq(epochStakingVaultProxy.balanceOf(tester), 0);
         assertEq(epochStakingVaultProxy.totalAssets(), 0);
-        assertEq(assetsWithdrawn, 10000);
+        assertEq(assetsWithdrawn, 10000 * 1e18);
 
         vm.stopPrank();
     }
@@ -91,10 +93,10 @@ contract EpochStakingVaultTest is Test {
     // testing cannot interact with implimentation contract
     function testCannotUseImplimentation() public {
         vm.startPrank(tester);
-        asset.approve(address(epochStakingVault), 20000);
+        asset.approve(address(epochStakingVault), 20000 * 1e18);
         vm.expectRevert();
-        epochStakingVault.deposit(10000, msg.sender);
-        asset.approve(address(epochStakingVaultProxy), 20000);
-        epochStakingVaultProxy.deposit(10000, msg.sender);
+        epochStakingVault.deposit(10000 * 1e18, msg.sender);
+        asset.approve(address(epochStakingVaultProxy), 20000* 1e18 );
+        epochStakingVaultProxy.deposit(10000 * 1e18, msg.sender);
     }
 }
