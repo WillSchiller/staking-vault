@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {EpochStakingVault} from "../../src/EpochStakingVault.sol";
+import {EpochStakingVault} from "../src/EpochStakingVault.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -30,8 +30,7 @@ contract EpochStakingVaultTest is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(epochStakingVault),
             abi.encodeCall(
-                EpochStakingVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL", minAmount, maxAmount)
+                EpochStakingVault.initialize, (IERC20(address(asset)), "Vault Name", "SYMBOL", minAmount, maxAmount)
             )
         );
         epochStakingVaultProxy = EpochStakingVault(address(proxy));
@@ -49,11 +48,7 @@ contract EpochStakingVaultTest is Test {
         assertEq(epochStakingVaultProxy.balanceOf(tester), sharesMinted);
         assertEq(epochStakingVaultProxy.totalAssets(), 10000 * 1e18);
         // Withdraw assets
-        uint256 assetsWithdrawn = epochStakingVaultProxy.withdraw(
-            10000 * 1e18,
-            tester,
-            tester
-        );
+        uint256 assetsWithdrawn = epochStakingVaultProxy.withdraw(10000 * 1e18, tester, tester);
         // Check balances after withdrawal
         assertEq(epochStakingVaultProxy.balanceOf(tester), 0);
         assertEq(epochStakingVaultProxy.totalAssets(), 0);
@@ -67,28 +62,18 @@ contract EpochStakingVaultTest is Test {
         EpochStakingVault newImplementation = new EpochStakingVault();
 
         // Calculate the EIP-1967 implementation slot
-        bytes32 implementationSlot = bytes32(
-            uint256(keccak256("eip1967.proxy.implementation")) - 1
-        );
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
 
         bytes memory data = "";
 
         // Upgrade the proxy to the new implementation
         vm.startPrank(owner);
-        epochStakingVaultProxy.upgradeToAndCall(
-            address(newImplementation),
-            data
-        );
+        epochStakingVaultProxy.upgradeToAndCall(address(newImplementation), data);
         vm.stopPrank();
 
         // Verify that the implementation address was updated in the proxy storage
-        address storedImplementation = address(
-            uint160(
-                uint256(
-                    vm.load(address(epochStakingVaultProxy), implementationSlot)
-                )
-            )
-        );
+        address storedImplementation =
+            address(uint160(uint256(vm.load(address(epochStakingVaultProxy), implementationSlot))));
         assertEq(storedImplementation, address(newImplementation));
     }
 
@@ -98,7 +83,7 @@ contract EpochStakingVaultTest is Test {
         asset.approve(address(epochStakingVault), 20000 * 1e18);
         vm.expectRevert();
         epochStakingVault.deposit(10000 * 1e18, msg.sender);
-        asset.approve(address(epochStakingVaultProxy), 20000* 1e18 );
+        asset.approve(address(epochStakingVaultProxy), 20000 * 1e18);
         epochStakingVaultProxy.deposit(10000 * 1e18, msg.sender);
     }
 }

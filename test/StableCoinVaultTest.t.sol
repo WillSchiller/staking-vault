@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {StableCoinRewardsVault} from "../../src/StableCoinRewardsVault.sol";
+import {StableCoinRewardsVault} from "../src/StableCoinRewardsVault.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -49,11 +49,7 @@ contract stableCoinRewardsVaultTest is Test {
         assertEq(stableCoinRewardsVaultProxy.balanceOf(tester), sharesMinted);
         assertEq(stableCoinRewardsVaultProxy.totalAssets(), 10000 * 1e18);
         // Withdraw assets
-        uint256 assetsWithdrawn = stableCoinRewardsVaultProxy.withdraw(
-            10000 * 1e18,
-            tester,
-            tester
-        );
+        uint256 assetsWithdrawn = stableCoinRewardsVaultProxy.withdraw(10000 * 1e18, tester, tester);
         // Check balances after withdrawal
         assertEq(stableCoinRewardsVaultProxy.balanceOf(tester), 0);
         assertEq(stableCoinRewardsVaultProxy.totalAssets(), 0);
@@ -67,31 +63,20 @@ contract stableCoinRewardsVaultTest is Test {
         StableCoinRewardsVault newImplementation = new StableCoinRewardsVault();
 
         // Calculate the EIP-1967 implementation slot
-        bytes32 implementationSlot = bytes32(
-            uint256(keccak256("eip1967.proxy.implementation")) - 1
-        );
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
 
         bytes memory data = "";
 
         // Upgrade the proxy to the new implementation
         vm.startPrank(owner);
-        stableCoinRewardsVaultProxy.upgradeToAndCall(
-            address(newImplementation),
-            data
-        );
+        stableCoinRewardsVaultProxy.upgradeToAndCall(address(newImplementation), data);
         vm.stopPrank();
 
         // Verify that the implementation address was updated in the proxy storage
-        address storedImplementation = address(
-            uint160(
-                uint256(
-                    vm.load(address(stableCoinRewardsVaultProxy), implementationSlot)
-                )
-            )
-        );
+        address storedImplementation =
+            address(uint160(uint256(vm.load(address(stableCoinRewardsVaultProxy), implementationSlot))));
         assertEq(storedImplementation, address(newImplementation));
     }
-
 
     // testing cannot interact with implimentation contract
     function testCannotUseImplimentation() public {
@@ -99,7 +84,7 @@ contract stableCoinRewardsVaultTest is Test {
         asset.approve(address(stableCoinRewardsVault), 20000 * 1e18);
         vm.expectRevert();
         stableCoinRewardsVault.deposit(10000 * 1e18, msg.sender);
-        asset.approve(address(stableCoinRewardsVaultProxy), 20000* 1e18 );
+        asset.approve(address(stableCoinRewardsVaultProxy), 20000 * 1e18);
         stableCoinRewardsVaultProxy.deposit(10000 * 1e18, msg.sender);
     }
 }

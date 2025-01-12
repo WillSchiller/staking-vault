@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {StableCoinRewardsVault} from "../../src/StableCoinRewardsVault.sol";
+import {StableCoinRewardsVault} from "../src/StableCoinRewardsVault.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -23,7 +23,7 @@ contract stableCoinRewardsVaultTest is Test {
         vm.warp(104 days + 1);
         //setup mock token
         asset = new ERC20Mock();
-        
+
         ERC20Mock implementation = new ERC20Mock();
         bytes memory bytecode = address(implementation).code;
         address targetAddr = address(0x7AC8519283B1bba6d683FF555A12318Ec9265229);
@@ -37,13 +37,7 @@ contract stableCoinRewardsVaultTest is Test {
             address(stableCoinRewardsVault),
             abi.encodeCall(
                 stableCoinRewardsVault.initialize,
-                (
-                    IERC20(address(asset)),
-                    "Vault Name",
-                    "SYMBOL",
-                    minAmount,
-                    maxAmount
-                )
+                (IERC20(address(asset)), "Vault Name", "SYMBOL", minAmount, maxAmount)
             )
         );
         stableCoinRewardsVaultProxy = StableCoinRewardsVault(address(proxy));
@@ -51,22 +45,16 @@ contract stableCoinRewardsVaultTest is Test {
         vm.stopPrank();
     }
 
-    function testIsOpen() public{}
-    function testIsLocked() public{}
-    function testIsMinAmount() public{}
-    function testUpdateReward() public{}
-    function testInitialize() public{}
-    function testClaimRewards() public{}
-    function testEarned() public{}
-    function testAddRewards() public{}
+    function testIsOpen() public {}
+    function testIsLocked() public {}
+    function testIsMinAmount() public {}
+    function testUpdateReward() public {}
+    function testInitialize() public {}
+    function testClaimRewards() public {}
+    function testEarned() public {}
+    function testAddRewards() public {}
 
-
-    function testRewardsDistribution(
-        uint256 rewards,
-        uint256 amount1,
-        uint256 amount2,
-        uint256 amount3
-    ) public {
+    function testRewardsDistribution(uint256 rewards, uint256 amount1, uint256 amount2, uint256 amount3) public {
         address staker1 = address(0x1234);
         address staker2 = address(0x5678);
         address staker3 = address(0x9abc);
@@ -122,11 +110,7 @@ contract stableCoinRewardsVaultTest is Test {
         }
         vm.stopPrank();
         vm.assertApproxEqAbs(
-            rewardToken.balanceOf(address(stableCoinRewardsVaultProxy))/1e27,
-            0,
-            5,
-            "Rewards not fully distributed"
+            rewardToken.balanceOf(address(stableCoinRewardsVaultProxy)) / 1e27, 0, 5, "Rewards not fully distributed"
         );
-
     }
 }
