@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
-import {EpochStakingVault} from "../src/EpochStakingVault.sol";
+import {EpochStakingVault} from "../../src/EpochStakingVault.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -14,6 +14,8 @@ contract EpochStakingVaultTest is Test {
     ERC20Mock public asset;
     address public tester = address(0x0001);
     address public owner = address(0x0002);
+    uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
+    uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
 
     function setUp() public {
         vm.startPrank(owner);
@@ -29,7 +31,7 @@ contract EpochStakingVaultTest is Test {
             address(epochStakingVault),
             abi.encodeCall(
                 EpochStakingVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL")
+                (IERC20(address(asset)), "Vault Name", "SYMBOL", minAmount, maxAmount)
             )
         );
         epochStakingVaultProxy = EpochStakingVault(address(proxy));
