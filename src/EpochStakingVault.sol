@@ -8,6 +8,9 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
+
+// todo: make pausable add roles.
+
 contract EpochStakingVault is Initializable, ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using Math for uint256;
 
@@ -30,7 +33,7 @@ contract EpochStakingVault is Initializable, ERC4626Upgradeable, OwnableUpgradea
     error InvalidClaim();
 
     modifier isOpen() {
-        // will revert is not open
+        // will revert if not open
         uint256 epochEnd = startTime + DEPOSIT_WINDOW + LOCK_PERIOD;
         if (block.timestamp > startTime + DEPOSIT_WINDOW && block.timestamp < epochEnd) {
             revert TokensLockedUntil(epochEnd);
@@ -95,35 +98,15 @@ contract EpochStakingVault is Initializable, ERC4626Upgradeable, OwnableUpgradea
     /// @dev isOpen modifier restricts deposit, mint, withdraw and redeem functions to be called only when the vault is in the deposit window
     /// @dev isMinAmount modifier restricts deposit, mint, withdraw and redeem functions to be called only when the amount is greater than the minAmount
     /// modifers should not affect ERC4626Upgradeable functionality in any other way.
-    function deposit(uint256 assets, address receiver)
-        public
-        virtual
-        override
-        isOpen
-        isMinAmount(assets)
-        returns (uint256)
-    {
+    function deposit(uint256 assets, address receiver) public virtual override isOpen isMinAmount(assets) returns (uint256) {
         return super.deposit(assets, receiver);
     }
 
-    function mint(uint256 shares, address receiver)
-        public
-        virtual
-        override
-        isOpen
-        isMinAmount(_convertToAssets(shares, Math.Rounding.Ceil))
-        returns (uint256)
-    {
+    function mint(uint256 shares, address receiver) public virtual override isOpen isMinAmount(_convertToAssets(shares, Math.Rounding.Ceil)) returns (uint256) {
         return super.mint(shares, receiver);
     }
 
-    function withdraw(uint256 assets, address receiver, address owner)
-        public
-        virtual
-        override
-        isOpen
-        returns (uint256)
-    {
+    function withdraw(uint256 assets, address receiver, address owner) public virtual override isOpen returns (uint256) {
         return super.withdraw(assets, receiver, owner);
     }
 
@@ -137,6 +120,14 @@ contract EpochStakingVault is Initializable, ERC4626Upgradeable, OwnableUpgradea
         uint256 epochStart = block.timestamp;
         startTime = epochStart;
         emit EpochStarted(currentEpoch, epochStart);
+    }
+
+    function updateMinAmount(uint256 _minAmount) public onlyOwner {
+        minAmount = _minAmount;
+    }
+
+    function updateMaxAmount(uint256 _maxAmount) public onlyOwner {
+        maxAmount = _maxAmount;
     }
 
     /// @dev restrict upgrades to the contract owner only.

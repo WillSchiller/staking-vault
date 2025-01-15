@@ -9,6 +9,9 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 
 contract EpochStakingVaultTest is Test {
+
+    
+
     EpochStakingVault public epochStakingVault;
     EpochStakingVault public epochStakingVaultProxy;
     ERC20Mock public asset;

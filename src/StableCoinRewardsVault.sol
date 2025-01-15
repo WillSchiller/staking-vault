@@ -28,8 +28,8 @@ contract StableCoinRewardsVault is EpochStakingVault {
 
     modifier updateReward(address user) {
         UserInfo storage _user = userInfo[user];
+        _user.unclaimedRewards = earned(user);
         _user.rewardsPerShareDebt = rewardsPerShareAccumulator;
-        _user.unclaimedRewards += earned(user);
         _;
     }
 
@@ -77,21 +77,11 @@ contract StableCoinRewardsVault is EpochStakingVault {
         return super.mint(shares, receiver);
     }
 
-    function withdraw(uint256 assets, address receiver, address owner)
-        public
-        override
-        updateReward(owner)
-        returns (uint256)
-    {
+    function withdraw(uint256 assets, address receiver, address owner) public override updateReward(owner) returns (uint256) {
         return super.withdraw(assets, receiver, owner);
     }
 
-    function redeem(uint256 shares, address receiver, address owner)
-        public
-        override
-        updateReward(owner)
-        returns (uint256)
-    {
+    function redeem(uint256 shares, address receiver, address owner) public override updateReward(owner) returns (uint256) {
         return super.redeem(shares, receiver, owner);
     }
 }
