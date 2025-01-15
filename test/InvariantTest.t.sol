@@ -54,12 +54,13 @@ contract InvariantTest is Test {
         // 4) Deploy the handler using contract references (no address(...) cast)
         handler = new Handler(vault, asset, rewardToken);
 
-        bytes4[] memory selectors = new bytes4[](5);
+        bytes4[] memory selectors = new bytes4[](6);
         selectors[0] = Handler.deposit.selector;
         selectors[1] = Handler.withdraw.selector;
         selectors[2] = Handler.claimRewards.selector;
         selectors[3] = Handler.addRewards.selector;
         selectors[4] = Handler.warpTime.selector;
+        selectors[5] = Handler.donateAsset.selector;
 
         targetSelector(
             FuzzSelector({addr: address(handler), selectors: selectors})
@@ -70,9 +71,12 @@ contract InvariantTest is Test {
     }
 
     function invariant_TotalDepositsMatchVault() public view {
-        // net = ghost_depositSum - ghost_withdrawSum
-        uint256 netDeposited = handler.ghost_depositSum() -
-            handler.ghost_withdrawSum();
+
+        uint256 deposits = handler.ghost_depositSum();
+        uint256 donates = handler.ghost_donateSum();
+        uint256 withdraws = handler.ghost_withdrawSum();
+
+        uint256 netDeposited = deposits + donates - withdraws;
         assertEq(
             vault.totalAssets(),
             netDeposited,
@@ -80,7 +84,7 @@ contract InvariantTest is Test {
         );
     }
 
-    function invariant_RewardsLogic() public {
+    function invariant_RewardsLogic() public view{
         uint256 totalRewardsAdded = handler.ghost_rewardsAdded();
         uint256 totalRewardsClaimed = handler.ghost_rewardsClaimed();
         uint256 totalUnclaimedRewards = rewardToken.balanceOf(address(vault));
@@ -129,8 +133,6 @@ contract InvariantTest is Test {
     vm.assertApproxEqAbs(vaultRewardBalance, 0, 5, "Vault still has leftover rewards");
 
 }
-
-    
 
     function invariant_callSummary() public view {
         handler.callSummary();

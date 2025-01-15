@@ -5,8 +5,9 @@ import {EpochStakingVault} from "./EpochStakingVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol"; // could use transient strorage ReentrancyGuardTransientUpgradeable
 
-contract StableCoinRewardsVault is EpochStakingVault {
+contract StableCoinRewardsVault is EpochStakingVault, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -41,9 +42,10 @@ contract StableCoinRewardsVault is EpochStakingVault {
         uint256 _maxAmount
     ) public override initializer {
         super.initialize(asset, _name, _symbol, _minAmount, _maxAmount);
+        __ReentrancyGuard_init();
     }
 
-    function claimRewards(address receiver) public {
+    function claimRewards(address receiver) public nonReentrant {
         uint256 rewards = earned(receiver);
         if (rewards == 0) revert NoClaimableRewards();
 
@@ -69,19 +71,19 @@ contract StableCoinRewardsVault is EpochStakingVault {
         rewardsPerShareAccumulator += amount.mulDiv(1e27, totalSupply, Math.Rounding.Floor);
     }
 
-    function deposit(uint256 assets, address receiver) public override updateReward(receiver) returns (uint256) {
+    function deposit(uint256 assets, address receiver) public override updateReward(receiver) nonReentrant returns (uint256) {
         return super.deposit(assets, receiver);
     }
 
-    function mint(uint256 shares, address receiver) public override updateReward(receiver) returns (uint256) {
+    function mint(uint256 shares, address receiver) public override updateReward(receiver) nonReentrant returns (uint256) {
         return super.mint(shares, receiver);
     }
 
-    function withdraw(uint256 assets, address receiver, address owner) public override updateReward(owner) returns (uint256) {
+    function withdraw(uint256 assets, address receiver, address owner) public override updateReward(owner) nonReentrant returns (uint256) {
         return super.withdraw(assets, receiver, owner);
     }
 
-    function redeem(uint256 shares, address receiver, address owner) public override updateReward(owner) returns (uint256) {
+    function redeem(uint256 shares, address receiver, address owner) public override updateReward(owner) nonReentrant returns (uint256) {
         return super.redeem(shares, receiver, owner);
     }
 }

@@ -18,6 +18,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
     address OWNER = address(0x00001234);
     uint256 public startTime;
     uint256 public ghost_depositSum;
+    uint256 public ghost_donateSum;
     uint256 public ghost_withdrawSum;
     uint256 public ghost_rewardsAdded;
     uint256 public ghost_rewardsClaimed;
@@ -144,6 +145,13 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         ghost_rewardsAdded += rewardAmount;
     }
 
+    function donateAsset(uint256 amount) public createActor countCall("donateAsset"){
+        vm.startPrank(currentActor);
+        asset.mint(address(this), amount);
+        asset.transfer(address(vault), amount);
+        ghost_donateSum += amount;
+    }
+
     function callSummary() external view {
         console.log("Call summary:");
         console.log("-------------------");
@@ -152,6 +160,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         console.log("claimRewards", calls["claimRewards"]);
         console.log("addRewards", calls["addRewards"]);
         console.log("warpTime", calls["warpTime"]);
+        console.log("donateAsset", calls["donateAsset"]);
         console.log("-------------------");
 
         console.log("Zero withdrawals:", ghost_zeroWithdrawals);
