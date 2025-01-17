@@ -13,7 +13,6 @@ contract Actions is Test {
     uint256 public constant MIN_REWARD = 100000000; //  100  - 6 decimals
     uint256 public constant MAX_REWARD = 1000000000000000000; // 1 trillon - 6 decimals
 
-
     function boundedDeposit(
         address user,
         ERC20Mock asset,
@@ -93,7 +92,6 @@ contract Actions is Test {
         string memory description,
         uint256 rawAmount
     ) public {
-        uint256 deposit;
         console.log(description);
         vm.warp(vault.startTime() + warpTime);
         if (expectRevert) {
@@ -117,5 +115,10 @@ contract Actions is Test {
         vm.startPrank(owner);
         vault.startEpoch();
         vm.stopPrank();
+    }
+
+    function claimAndExpectRevert(address user, StableCoinRewardsVault vault) public {
+        vm.expectRevert();
+        vault.claimRewards(user);
     }
 }

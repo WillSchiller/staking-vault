@@ -5,14 +5,15 @@ import {EpochStakingVault} from "./EpochStakingVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol"; // could use transient strorage ReentrancyGuardTransientUpgradeable
 
-contract StableCoinRewardsVault is EpochStakingVault, ReentrancyGuardUpgradeable {
+contract StableCoinRewardsVault is EpochStakingVault {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    IERC20 public constant rewardToken = IERC20(0x7AC8519283B1bba6d683FF555A12318Ec9265229); // USDT Arbitrum Sepolia
-    uint256 public rewardsPerShareAccumulator;
+    uint256 public totalRewardsPerShareAccumulator;
+    uint256 public claimableRewardsPerShareAccumulator;
+
+    IERC20 public constant rewardToken = IERC20(0x7AC8519283B1bba6d683FF555A12318Ec9265229);
 
     struct UserInfo {
         uint256 unclaimedRewards;
@@ -21,69 +22,104 @@ contract StableCoinRewardsVault is EpochStakingVault, ReentrancyGuardUpgradeable
 
     mapping(address user => UserInfo) public userInfo;
 
-    // todo add events
+    event RewardsAdded(uint256 indexed epoch, uint256 amount);
+    event RewardsClaimed(address indexed user, uint256 amount);
 
     error NoAssetsStaked();
     error NoClaimableRewards();
     error AmountCannotBeZero();
 
     modifier updateReward(address user) {
+        syncToCurrentEpoch();
         UserInfo storage _user = userInfo[user];
-        _user.unclaimedRewards = earned(user);
-        _user.rewardsPerShareDebt = rewardsPerShareAccumulator;
+        _user.unclaimedRewards = claimableRewards(user);
+        _user.rewardsPerShareDebt = claimableRewardsPerShareAccumulator;
         _;
     }
 
     function initialize(
-        IERC20 asset,
+        IERC20 _asset,
         string memory _name,
         string memory _symbol,
+        address _contractAdmin,
+        address _epochManager,
+        address _rewardsManager,
         uint256 _minAmount,
         uint256 _maxAmount
     ) public override initializer {
-        super.initialize(asset, _name, _symbol, _minAmount, _maxAmount);
-        __ReentrancyGuard_init();
+        super.initialize(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount);
     }
 
-    function claimRewards(address receiver) public nonReentrant {
-        uint256 rewards = earned(receiver);
-        if (rewards == 0) revert NoClaimableRewards();
-
-        UserInfo storage _user = userInfo[receiver];
-        _user.rewardsPerShareDebt = rewardsPerShareAccumulator;
-        _user.unclaimedRewards = 0;
-        rewardToken.safeTransfer(receiver, rewards);
-    }
-
-    function earned(address user) public view returns (uint256 rewards) {
-        UserInfo memory _user = userInfo[user];
-        uint256 _shares = balanceOf(user);
-        return _shares.mulDiv(rewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor)
-            + _user.unclaimedRewards;
-    }
-
-    function addRewards(uint256 amount) public onlyOwner isLocked {
+    /// ! Is REWARDS_MANAGER_ROLE redudnant secuirty/ Non issue if someone donates rewards?
+    function addRewards(uint256 amount) external onlyRole(REWARDS_MANAGER_ROLE) isLocked {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) revert NoAssetsStaked();
         if (amount == 0) revert AmountCannotBeZero();
-
         rewardToken.safeTransferFrom(msg.sender, address(this), amount);
-        rewardsPerShareAccumulator += amount.mulDiv(1e27, totalSupply, Math.Rounding.Floor);
+        totalRewardsPerShareAccumulator += amount.mulDiv(1e27, totalSupply, Math.Rounding.Floor);
+        emit RewardsAdded(currentEpoch, amount);
     }
 
-    function deposit(uint256 assets, address receiver) public override updateReward(receiver) nonReentrant returns (uint256) {
+    /// ! Could limit to msg.sender == receiver but limits flexibility
+    function claimRewards(address receiver) external nonReentrant whenNotPaused {
+        syncToCurrentEpoch();
+        uint256 rewards = claimableRewards(receiver);
+        if (rewards == 0) revert NoClaimableRewards();
+        UserInfo storage _user = userInfo[receiver];
+        _user.rewardsPerShareDebt = claimableRewardsPerShareAccumulator;
+        _user.unclaimedRewards = 0;
+        rewardToken.safeTransfer(receiver, rewards);
+        emit RewardsClaimed(receiver, rewards);
+    }
+
+    function claimableRewards(address user) public view returns (uint256 rewards) {
+        UserInfo memory _user = userInfo[user];
+        uint256 _shares = balanceOf(user);
+        return _shares.mulDiv(
+            claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor
+        ) + _user.unclaimedRewards;
+    }
+
+    function allRewards(address user) public view returns (uint256 rewards) {
+        UserInfo memory _user = userInfo[user];
+        uint256 _shares = balanceOf(user);
+        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor)
+            + _user.unclaimedRewards;
+    }
+
+    function deposit(uint256 assets, address receiver) public override updateReward(receiver) returns (uint256) {
         return super.deposit(assets, receiver);
     }
 
-    function mint(uint256 shares, address receiver) public override updateReward(receiver) nonReentrant returns (uint256) {
+    function mint(uint256 shares, address receiver) public override updateReward(receiver) returns (uint256) {
         return super.mint(shares, receiver);
     }
 
-    function withdraw(uint256 assets, address receiver, address owner) public override updateReward(owner) nonReentrant returns (uint256) {
+    function withdraw(uint256 assets, address receiver, address owner)
+        public
+        override
+        updateReward(owner)
+        returns (uint256)
+    {
         return super.withdraw(assets, receiver, owner);
     }
 
-    function redeem(uint256 shares, address receiver, address owner) public override updateReward(owner) nonReentrant returns (uint256) {
+    function redeem(uint256 shares, address receiver, address owner)
+        public
+        override
+        updateReward(owner)
+        returns (uint256)
+    {
         return super.redeem(shares, receiver, owner);
+    }
+
+    function syncToCurrentEpoch() internal {
+        if (
+            block.timestamp < startTime + DEPOSIT_WINDOW
+                || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD
+                    && totalRewardsPerShareAccumulator != claimableRewardsPerShareAccumulator
+        ) {
+            claimableRewardsPerShareAccumulator = totalRewardsPerShareAccumulator;
+        }
     }
 }

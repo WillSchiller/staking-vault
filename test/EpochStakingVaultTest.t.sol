@@ -10,21 +10,27 @@ import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.s
 
 contract EpochStakingVaultTest is Test {
 
-    
-
     EpochStakingVault public epochStakingVault;
     EpochStakingVault public epochStakingVaultProxy;
     ERC20Mock public asset;
-    address public tester = address(0x0001);
-    address public owner = address(0x0002);
+    address public contractAdmin = address(0x0001);
+    address public epochManager = address(0x0002);
+    address public rewardsManager = address(0x0003);
+    address public tester = address(0x0004);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
 
     function setUp() public {
-        vm.startPrank(owner);
         vm.warp(104 days + 1);
-        //setup mock token
-        asset = new ERC20Mock();
+
+        //setup mock tokens
+        ERC20Mock implementation = new ERC20Mock();
+        bytes memory bytecode = address(implementation).code;
+
+        //NEXD token
+        address assetTargetAddr = address(0x3858567501fbf030BD859EE831610fCc710319f4);
+        vm.etch(assetTargetAddr, bytecode);
+        asset = ERC20Mock(assetTargetAddr);
         asset.mint(tester, 10_000_000 * 1e18);
 
         //deploy implementation contract
@@ -33,12 +39,13 @@ contract EpochStakingVaultTest is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(epochStakingVault),
             abi.encodeCall(
-                EpochStakingVault.initialize, (IERC20(address(asset)), "Vault Name", "SYMBOL", minAmount, maxAmount)
+                EpochStakingVault.initialize, (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager, minAmount, maxAmount)
             )
         );
         epochStakingVaultProxy = EpochStakingVault(address(proxy));
+        vm.prank(epochManager);
         epochStakingVaultProxy.startEpoch();
-        vm.stopPrank();
+
     }
 
     function testDepositAndWithdraw() public {
@@ -60,7 +67,7 @@ contract EpochStakingVaultTest is Test {
         vm.stopPrank();
     }
 
-    function testAuthorizedUpgrade() public {
+   function testAuthorizedUpgrade() public {
         // Deploy a new implementation contract
         EpochStakingVault newImplementation = new EpochStakingVault();
 
@@ -70,8 +77,19 @@ contract EpochStakingVaultTest is Test {
         bytes memory data = "";
 
         // Upgrade the proxy to the new implementation
-        vm.startPrank(owner);
+        vm.startPrank(contractAdmin);
         epochStakingVaultProxy.upgradeToAndCall(address(newImplementation), data);
+        vm.stopPrank();
+
+        vm.startPrank(contractAdmin);
+        epochStakingVaultProxy.upgradeToAndCall(address(newImplementation), data);
+        vm.stopPrank();
+
+        EpochStakingVault authorizedImplementation = new EpochStakingVault();
+
+        vm.startPrank(tester);
+        vm.expectRevert();
+        epochStakingVaultProxy.upgradeToAndCall(address(authorizedImplementation), data);
         vm.stopPrank();
 
         // Verify that the implementation address was updated in the proxy storage

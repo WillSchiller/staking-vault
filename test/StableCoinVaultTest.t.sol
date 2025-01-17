@@ -8,20 +8,36 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 
-contract stableCoinRewardsVaultTest is Test {
+contract StableCoinRewardsVaultTest is Test {
     StableCoinRewardsVault public stableCoinRewardsVault;
     StableCoinRewardsVault public stableCoinRewardsVaultProxy;
     ERC20Mock public asset;
-    address public tester = address(0x0001);
-    address public owner = address(0x0002);
+    ERC20Mock public rewardToken;
+    address public contractAdmin = address(0x0001);
+    address public epochManager = address(0x0002);
+    address public rewardsManager = address(0x0003);
+    address public tester = address(0x0004);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
 
     function setUp() public {
-        vm.startPrank(owner);
         vm.warp(104 days + 1);
         //setup mock token
-        asset = new ERC20Mock();
+        //setup mock tokens
+        ERC20Mock implementation = new ERC20Mock();
+        bytes memory bytecode = address(implementation).code;
+
+        /* USDT token
+        address rewardTokenAddr = address(0x7AC8519283B1bba6d683FF555A12318Ec9265229);
+        vm.etch(rewardTokenAddr, bytecode);
+        rewardToken = ERC20Mock(rewardTokenAddr);
+        */
+        //NEXD token
+        address assetTargetAddr = address(0x3858567501fbf030BD859EE831610fCc710319f4);
+        vm.etch(assetTargetAddr, bytecode);
+        asset = ERC20Mock(assetTargetAddr);
+
+        //mint assets
         asset.mint(tester, 10_000_000 * 1e18);
 
         //deploy implementation contract
@@ -31,12 +47,13 @@ contract stableCoinRewardsVaultTest is Test {
             address(stableCoinRewardsVault),
             abi.encodeCall(
                 stableCoinRewardsVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL", minAmount, maxAmount)
+                (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager,  minAmount, maxAmount)
             )
         );
         stableCoinRewardsVaultProxy = StableCoinRewardsVault(address(proxy));
+        vm.prank(epochManager);
         stableCoinRewardsVaultProxy.startEpoch();
-        vm.stopPrank();
+
     }
 
     function testDepositAndWithdraw() public {
@@ -68,8 +85,19 @@ contract stableCoinRewardsVaultTest is Test {
         bytes memory data = "";
 
         // Upgrade the proxy to the new implementation
-        vm.startPrank(owner);
+        vm.startPrank(contractAdmin);
         stableCoinRewardsVaultProxy.upgradeToAndCall(address(newImplementation), data);
+        vm.stopPrank();
+
+        vm.startPrank(contractAdmin);
+        stableCoinRewardsVaultProxy.upgradeToAndCall(address(newImplementation), data);
+        vm.stopPrank();
+
+        StableCoinRewardsVault authorizedImplementation = new StableCoinRewardsVault();
+
+        vm.startPrank(tester);
+        vm.expectRevert();
+        stableCoinRewardsVaultProxy.upgradeToAndCall(address(authorizedImplementation), data);
         vm.stopPrank();
 
         // Verify that the implementation address was updated in the proxy storage

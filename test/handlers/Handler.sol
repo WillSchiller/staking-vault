@@ -15,7 +15,9 @@ contract Handler is CommonBase, StdCheats, StdUtils {
     StableCoinRewardsVault public vault;
     ERC20Mock public asset;
     ERC20Mock public rewardToken;
-    address OWNER = address(0x00001234);
+    address public contractAdmin = address(0x0001);
+    address public epochManager = address(0x0002);
+    address public rewardsManager = address(0x0003);
     uint256 public startTime;
     uint256 public ghost_depositSum;
     uint256 public ghost_donateSum;
@@ -118,7 +120,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
     function claimRewards(
         uint256 actorSeed
     ) public useActor(actorSeed) countCall("claimRewards") {
-        uint256 earnedBefore = vault.earned(currentActor);
+        uint256 earnedBefore = vault.claimableRewards(currentActor);
         if (earnedBefore == 0) {
             ghost_zeroClaims++;
         }
@@ -135,9 +137,9 @@ contract Handler is CommonBase, StdCheats, StdUtils {
      */
     function addRewards(uint256 rewardAmount) public countCall("addRewards") {
             
-        vm.startPrank(OWNER);
+        vm.startPrank(rewardsManager);
         rewardAmount = bound(rewardAmount, 100000000, 1000000000000000000); // between 100 and a trillion dollars Assume USDT
-        rewardToken.mint(address(OWNER), rewardAmount);
+        rewardToken.mint(address(rewardsManager), rewardAmount);
         rewardToken.approve(address(vault), rewardAmount);
         vault.addRewards(rewardAmount);
         vm.stopPrank();
