@@ -158,7 +158,7 @@ contract UnitTests is Test {
 
         vm.warp(block.timestamp + 8 days); 
 
-        //rewards += actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVaultProxy, rewards);
+        rewards += actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVaultProxy, rewards);
 
         vm.warp(block.timestamp + 98 days);
         actions.startEpoch(epochManager, stableCoinRewardsVaultProxy); 
@@ -170,7 +170,7 @@ contract UnitTests is Test {
 
         vm.warp(block.timestamp + 8 days); 
 
-        //rewards += actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVaultProxy, rewards);
+        rewards += actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVaultProxy, rewards);
       
         vm.warp(block.timestamp + 1000 days);
 
@@ -186,16 +186,19 @@ contract UnitTests is Test {
         assertApproxEqAbs((rewardToken.balanceOf(address(stableCoinRewardsVaultProxy)) / 1e6), 0, 5);
     }
 
+    // make deposits and try to claim the rewards in the same epoch
     function testCannotClaimCurrentEpochRewards(uint256 rewards, uint256 amount1, uint256 amount2, uint256 amount3) public {
 
+        // deposit
         amount1 = actions.boundedDeposit(staker1, asset, stableCoinRewardsVaultProxy, amount1);
         amount2 = actions.boundedDeposit(staker2, asset, stableCoinRewardsVaultProxy, amount2);
         amount3 = actions.boundedDeposit(staker3, asset, stableCoinRewardsVaultProxy, amount3);
 
-        //warp to lock period
+        // warp to lock period
         vm.warp(block.timestamp + 8 days);  
         rewards = actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVaultProxy, rewards);
 
+        // claim rewards in the same epoch
         actions.claimAndExpectRevert(staker1, stableCoinRewardsVaultProxy);
         actions.claimAndExpectRevert(staker2, stableCoinRewardsVaultProxy);
         actions.claimAndExpectRevert(staker3, stableCoinRewardsVaultProxy);

@@ -20,9 +20,6 @@ contract EpochStakingVault is
 {
     using Math for uint256;
 
-    /// CONTRACT_ADMIN_ROLE can upgrade contract and update minAmount/maxAmount
-    /// EPOCH_MANAGER_ROLE can start epochs
-    /// REWARDS_MANAGER_ROLE can add rewards to the vault
     bytes32 public constant CONTRACT_ADMIN_ROLE = keccak256("CONTRACT_ADMIN_ROLE");
     bytes32 public constant EPOCH_MANAGER_ROLE = keccak256("EPOCH_MANAGER_ROLE");
     bytes32 public constant REWARDS_MANAGER_ROLE = keccak256("REWARDS_MANAGER_ROLE");
@@ -32,14 +29,14 @@ contract EpochStakingVault is
 
     uint256 public currentEpoch;
     uint256 public startTime;
-    uint256 public minAmount;
-    uint256 public maxAmount;
+    uint256 private minAmount;
+    uint256 private maxAmount;
 
     event VaultInitialized(address indexed asset, string name, string symbol);
     event EpochStarted(uint256 indexed epoch, uint256 indexed start);
 
     error InvalidAsset();
-    error TokensLockedUntil();
+    error EpochLocked();
     error amountTooLow();
     error EpochInProgress();
     error NotLocked();
@@ -47,7 +44,7 @@ contract EpochStakingVault is
 
     modifier isOpen() {
         if (block.timestamp > startTime + DEPOSIT_WINDOW && block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
-            revert TokensLockedUntil();
+            revert EpochLocked();
         }
         _;
     }
@@ -97,7 +94,6 @@ contract EpochStakingVault is
         _grantRole(REWARDS_MANAGER_ROLE, rewardsManager);
         minAmount = _minAmount;
         maxAmount = _maxAmount;
-
         emit VaultInitialized(address(_asset), _name, _symbol);
     }
     
@@ -119,12 +115,12 @@ contract EpochStakingVault is
 
     /// @dev See {IERC4626-maxDeposit}.
     function maxDeposit(address) public view override returns (uint256) {
-        return maxAmount; // update to constant for gas optimization
+        return maxAmount;
     }
 
     /// @dev See {IERC4626-maxMint}.
     function maxMint(address) public view override returns (uint256) {
-        return _convertToShares(maxAmount, Math.Rounding.Ceil); // update to constant for gas optimization
+        return _convertToShares(maxAmount, Math.Rounding.Ceil);
     }
 
     /// @dev only changes to deposit, mint, withdraw and redeem functions are to add the isOpen,
@@ -184,10 +180,9 @@ contract EpochStakingVault is
 
     function startEpoch() public onlyRole(EPOCH_MANAGER_ROLE) {
         if (block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) revert EpochInProgress();
+        startTime = block.timestamp;
         currentEpoch++;
-        uint256 epochStart = block.timestamp;
-        startTime = epochStart;
-        emit EpochStarted(currentEpoch, epochStart);
+        emit EpochStarted(currentEpoch, block.timestamp);
     }
 
     /// @dev restrict upgrades to the contract owner only.
