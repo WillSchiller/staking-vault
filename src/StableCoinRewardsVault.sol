@@ -51,6 +51,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
     }
 
     /// ! Is REWARDS_MANAGER_ROLE redudnant secuirty/ Non issue if someone donates rewards?
+    /// check for inflation attack
     function addRewards(uint256 amount) external onlyRole(REWARDS_MANAGER_ROLE) isLocked {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) revert NoAssetsStaked();

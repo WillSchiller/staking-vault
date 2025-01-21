@@ -26,6 +26,7 @@ contract EpochStakingVault is
 
     uint256 constant DEPOSIT_WINDOW = 7 days;
     uint256 constant LOCK_PERIOD = 90 days;
+    uint256 constant absoluteMinAmount = 10_000 * 1e18; // 10,000 NEXD @ $0.01 I.E. $100 of NEXD
 
     uint256 public currentEpoch;
     uint256 public startTime;
@@ -41,6 +42,8 @@ contract EpochStakingVault is
     error EpochInProgress();
     error NotLocked();
     error InvalidClaim();
+    error MinAmountTooLow();
+    error MinAmountMustBeLessThanMaxAmount();
 
     modifier isOpen() {
         if (block.timestamp > startTime + DEPOSIT_WINDOW && block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
@@ -106,6 +109,9 @@ contract EpochStakingVault is
     }
 
     function updateMinAmount(uint256 _minAmount) external onlyRole(CONTRACT_ADMIN_ROLE) {
+        /// @notice setting minAmount to very low value opens attack vector for dusting attacks/ DoS / Inflation attacks
+        if (_minAmount < absoluteMinAmount) revert MinAmountTooLow();
+        if (_minAmount >= maxAmount) revert MinAmountMustBeLessThanMaxAmount();
         minAmount = _minAmount;
     }
 
