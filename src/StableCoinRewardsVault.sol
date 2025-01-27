@@ -13,11 +13,9 @@ contract StableCoinRewardsVault is EpochStakingVault {
     uint256 public totalRewardsPerShareAccumulator;
     uint256 public claimableRewardsPerShareAccumulator;
 
-    IERC20 public constant rewardToken = IERC20(0x7AC8519283B1bba6d683FF555A12318Ec9265229);
-
     struct UserInfo {
         uint256 unclaimedRewards;
-        uint256 rewardsPerShareDebt; // maybe should be called rewardsclaimedsnapshot
+        uint256 rewardsPerShareDebt; 
     }
 
     mapping(address user => UserInfo) public userInfo;
@@ -45,13 +43,13 @@ contract StableCoinRewardsVault is EpochStakingVault {
         address _epochManager,
         address _rewardsManager,
         uint256 _minAmount,
-        uint256 _maxAmount
+        uint256 _maxAmount,
+        IERC20 _rewardToken
     ) public override initializer {
-        super.initialize(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount);
+        super.initialize(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount, _rewardToken);
     }
 
-    /// ! Is REWARDS_MANAGER_ROLE redudnant secuirty/ Non issue if someone donates rewards?
-    /// check for inflation attack
+    /// Is REWARDS_MANAGER_ROLE redudnant secuirty/ Non issue if someone donates rewards?
     function addRewards(uint256 amount) external onlyRole(REWARDS_MANAGER_ROLE) isLocked {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) revert NoAssetsStaked();

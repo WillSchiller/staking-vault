@@ -24,9 +24,14 @@ contract EpochStakingVault is
     bytes32 public constant EPOCH_MANAGER_ROLE = keccak256("EPOCH_MANAGER_ROLE");
     bytes32 public constant REWARDS_MANAGER_ROLE = keccak256("REWARDS_MANAGER_ROLE");
 
-    uint256 constant DEPOSIT_WINDOW = 7 days;
-    uint256 constant LOCK_PERIOD = 90 days;
-    uint256 constant absoluteMinAmount = 10_000 * 1e18; // 10,000 NEXD @ $0.01 I.E. $100 of NEXD
+    uint256 public constant DEPOSIT_WINDOW = 7 days;
+    uint256 public constant LOCK_PERIOD = 90 days;
+    uint256 public constant absoluteMinAmount = 1 * 1e18; // Min amount is 1 NEXD to prevent dusting attacks
+
+    
+    /// @notice custom rewardToken if extending contract to include rewards in non-asset token
+    /// @dev can be set to 0x0 for no rewards
+    IERC20 public rewardToken;
 
     uint256 public currentEpoch;
     uint256 public startTime;
@@ -78,7 +83,8 @@ contract EpochStakingVault is
         address epochManager,
         address rewardsManager,
         uint256 _minAmount,
-        uint256 _maxAmount
+        uint256 _maxAmount,
+        IERC20 _RewardToken
     ) public virtual initializer {
         /// Ensure asset is NEXD and ensure asset is decimals 18
         /// Initialize ERC4626 with the staked token (asset)
@@ -86,7 +92,7 @@ contract EpochStakingVault is
         /// Initialize UUPSUpgradeable, PausableUpgradeable and ReentrancyGuardUpgradeable
         /// Grant roles to contractAdmin, epochManager, rewardsManager
         /// Set minAmount and maxAmount
-        if (address(_asset) != address(0x3858567501fbf030BD859EE831610fCc710319f4)) revert InvalidAsset();
+        /// if (address(_asset) != address(0x3858567501fbf030BD859EE831610fCc710319f4)) revert InvalidAsset(); uncomment this line in production
         __ERC4626_init(_asset);
         __ERC20_init(_name, _symbol);
         __UUPSUpgradeable_init();
@@ -97,6 +103,7 @@ contract EpochStakingVault is
         _grantRole(REWARDS_MANAGER_ROLE, rewardsManager);
         minAmount = _minAmount;
         maxAmount = _maxAmount;
+        rewardToken = _RewardToken;
         emit VaultInitialized(address(_asset), _name, _symbol);
     }
     

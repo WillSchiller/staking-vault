@@ -55,7 +55,7 @@ contract UnitTests is Test {
             address(stableCoinRewardsVault),
             abi.encodeCall(
                 stableCoinRewardsVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL",contractAdmin, epochManager, rewardsManager,   minAmount, maxAmount)
+                (IERC20(address(asset)), "Vault Name", "SYMBOL",contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, rewardToken)
             )
         );
 

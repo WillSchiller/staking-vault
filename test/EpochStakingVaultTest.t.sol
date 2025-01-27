@@ -31,7 +31,12 @@ contract EpochStakingVaultTest is Test {
         address assetTargetAddr = address(0x3858567501fbf030BD859EE831610fCc710319f4);
         vm.etch(assetTargetAddr, bytecode);
         asset = ERC20Mock(assetTargetAddr);
+
         asset.mint(tester, 10_000_000 * 1e18);
+
+        /// Reward token
+        IERC20 rewardToken = IERC20(address(0x0));
+
 
         //deploy implementation contract
         epochStakingVault = new EpochStakingVault();
@@ -39,7 +44,7 @@ contract EpochStakingVaultTest is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(epochStakingVault),
             abi.encodeCall(
-                EpochStakingVault.initialize, (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager, minAmount, maxAmount)
+                EpochStakingVault.initialize, (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, rewardToken)
             )
         );
         epochStakingVaultProxy = EpochStakingVault(address(proxy));

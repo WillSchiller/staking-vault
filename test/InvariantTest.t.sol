@@ -53,7 +53,8 @@ contract InvariantTest is Test {
                     epochManager,
                     contractAdmin,
                     minAmount,
-                    maxAmount
+                    maxAmount,
+                    rewardToken
                 )
             )
         );

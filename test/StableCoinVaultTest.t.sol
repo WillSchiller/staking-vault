@@ -27,11 +27,11 @@ contract StableCoinRewardsVaultTest is Test {
         ERC20Mock implementation = new ERC20Mock();
         bytes memory bytecode = address(implementation).code;
 
-        /* USDT token
+        //USDT token
         address rewardTokenAddr = address(0x7AC8519283B1bba6d683FF555A12318Ec9265229);
         vm.etch(rewardTokenAddr, bytecode);
         rewardToken = ERC20Mock(rewardTokenAddr);
-        */
+    
         //NEXD token
         address assetTargetAddr = address(0x3858567501fbf030BD859EE831610fCc710319f4);
         vm.etch(assetTargetAddr, bytecode);
@@ -47,7 +47,7 @@ contract StableCoinRewardsVaultTest is Test {
             address(stableCoinRewardsVault),
             abi.encodeCall(
                 stableCoinRewardsVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager,  minAmount, maxAmount)
+                (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager,  minAmount, maxAmount, rewardToken)
             )
         );
         stableCoinRewardsVaultProxy = StableCoinRewardsVault(address(proxy));
