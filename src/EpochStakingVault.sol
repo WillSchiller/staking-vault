@@ -42,7 +42,7 @@ contract EpochStakingVault is
 
     error InvalidAsset();
     error EpochLocked();
-    error amountTooLow();
+    error AmountTooLow();
     error EpochInProgress();
     error NotLocked();
     error InvalidClaim();
