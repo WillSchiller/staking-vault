@@ -28,6 +28,71 @@ contract Actions is Test {
         return amt;
     }
 
+    function simpleDeposit(address user, ERC20Mock asset,  StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
+        asset.mint(user, amount);
+        vm.startPrank(user);
+        asset.approve(address(vault), amount);
+        if (expectRevert) {
+            vm.expectRevert();
+            vault.deposit(amount, user);
+        } else {
+            vault.deposit(amount, user);
+        }
+        vm.stopPrank();
+        return amount;
+    }
+
+    function simpleMint(address user, ERC20Mock asset,  StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
+        asset.mint(user, amount);
+        vm.startPrank(user);
+        asset.approve(address(vault), amount);
+        uint256 shares = vault.convertToShares(amount);
+        if (expectRevert) {
+            vm.expectRevert();
+            vault.mint(shares, user);
+        } else {
+            vault.mint(shares, user);
+        }
+        vm.stopPrank();
+        return shares;
+    }
+
+    function simpleWithdraw(address user, StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
+        vm.startPrank(user);
+        if (expectRevert) {
+            vm.expectRevert();
+            vault.withdraw(amount, user, user);
+        } else {
+            vault.withdraw(amount, user, user);
+        }
+        vm.stopPrank();
+        return amount;
+    }
+
+    function simpleRedeem(address user, StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
+        vm.startPrank(user);
+        if (expectRevert) {
+            vm.expectRevert();
+            vault.redeem(amount, user, user);
+        } else {
+            vault.redeem(amount, user, user);
+        }
+        vm.stopPrank();
+        return amount;
+    }
+
+    function simpleClaimRewards(address user, StableCoinRewardsVault vault, bool expectRevert) public {
+        vm.startPrank(user);
+        if (expectRevert) {
+            vm.expectRevert();
+            vault.claimRewards(user);
+        } else {
+            vault.claimRewards(user);
+        }
+        vm.stopPrank();
+    }
+
+
     function boundedWithdraw(
         address user,
         StableCoinRewardsVault vault,
@@ -110,6 +175,8 @@ contract Actions is Test {
             boundedReward(user, rewardToken, vault, rawAmount);
         }
     }
+
+
 
     function startEpoch(address owner, StableCoinRewardsVault vault) public {
         vm.startPrank(owner);

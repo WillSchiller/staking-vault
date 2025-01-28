@@ -63,24 +63,98 @@ contract UnitTests is Test {
         stableCoinRewardsVaultProxy = StableCoinRewardsVault(address(proxy));
         vm.prank(epochManager);
         stableCoinRewardsVaultProxy.startEpoch();
-
     }
 
     function testIsOpen(uint256 rawAmount) public {
-        actions.executeDepositWithdrawal(staker1, asset, stableCoinRewardsVaultProxy, 1 days, false, "Testing isOpen at 1 day",rawAmount);
+        actions.executeDepositWithdrawal(staker1, asset, stableCoinRewardsVaultProxy, 0 days, false, "Testing isOpen at 0 day",rawAmount);
+        actions.executeDepositWithdrawal(staker2, asset, stableCoinRewardsVaultProxy, 1 days, false, "Testing isOpen at 1 day",rawAmount);
+        // Testing overlaps if isOpen revert is true at 7 days islocked should be false: see line 84
+        actions.executeDepositWithdrawal(staker3, asset, stableCoinRewardsVaultProxy, 7 days, true, "Testing isOpen at 7 days", rawAmount);
         actions.executeDepositWithdrawal(staker1, asset, stableCoinRewardsVaultProxy, 7 days + 1, true, "Testing isOpen at 7 days + 1 second: expect revert", rawAmount);
-        actions.executeDepositWithdrawal(staker1, asset, stableCoinRewardsVaultProxy, 30 days + 1, true, "Testing isOpen at 30 days + 1 second: expect revert", rawAmount);
+        actions.executeDepositWithdrawal(staker2, asset, stableCoinRewardsVaultProxy, 30 days, true, "Testing isOpen at 30 days: expect revert", rawAmount);
+        actions.executeDepositWithdrawal(staker3, asset, stableCoinRewardsVaultProxy, 30 days + 1, true, "Testing isOpen at 30 days + 1 second: expect revert", rawAmount);
+        // Testing overlaps if isOpen revert is true at 97 days islocked should be false
         actions.executeDepositWithdrawal(staker1, asset, stableCoinRewardsVaultProxy, 97 days, false, "Testing isOpen at 97 days", rawAmount);
+        actions.executeDepositWithdrawal(staker2, asset, stableCoinRewardsVaultProxy, 97 days, false, "Testing isOpen at 97 days", rawAmount);
     }
 
     function testIsLocked(uint256 rawAmount) public {
+        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 0 days, true, "Testing isOpen at 0 day", rawAmount);
         actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 1 days, true, "Testing isOpen at 1 day", rawAmount);
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 7 days + 1, false, "Testing isOpen at 7 days + 1 second", rawAmount);
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 30 days + 1, false, "Testing isOpen at 30 days + 1 second", rawAmount);
+        // Testing overlaps if isOpen revert is true at 7 days islocked should be false
+        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 7 days, false, "Testing isOpen at 1 day: expect revert", rawAmount);
+        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 7 days + 1, false, "Testing isOpen at 7 days + 1 second: expect revert", rawAmount);
+        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 30 days + 1, false, "Testing isOpen at 30 days + 1 second: expect revert", rawAmount);
+        // Testing overlaps if isOpen revert is true at 97 days islocked should be false
+        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 97 days, true, "Testing isOpen at 97 days", rawAmount);
         actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 97 days + 1, true, "Testing isOpen at 97 days", rawAmount);
     }
 
-    function testIsMinAmount() public {}
+
+    function testIsMinAmount() public {
+        uint256 _minAmount = stableCoinRewardsVaultProxy.minAmount();
+        actions.simpleMint(staker1, asset, stableCoinRewardsVaultProxy, (_minAmount -1), true);
+        actions.simpleMint(staker2, asset, stableCoinRewardsVaultProxy, _minAmount, false);
+        actions.simpleMint(staker3, asset, stableCoinRewardsVaultProxy, (_minAmount + 1), false);
+
+        actions.simpleDeposit(staker1, asset, stableCoinRewardsVaultProxy, (_minAmount -1), true);
+        actions.simpleDeposit(staker2, asset, stableCoinRewardsVaultProxy, _minAmount, false);
+        actions.simpleDeposit(staker3, asset, stableCoinRewardsVaultProxy, (_minAmount + 1), false);
+    }
+
+    function testMaxAmount() public {
+        uint256 _maxAmount = stableCoinRewardsVaultProxy.maxAmount();
+        actions.simpleMint(staker1, asset, stableCoinRewardsVaultProxy, (_maxAmount + 1), true);
+        actions.simpleMint(staker2, asset, stableCoinRewardsVaultProxy, _maxAmount, false);
+        actions.simpleMint(staker3, asset, stableCoinRewardsVaultProxy, (_maxAmount - 1), false);
+
+        actions.simpleDeposit(staker1, asset, stableCoinRewardsVaultProxy, (_maxAmount + 1), true);
+        actions.simpleDeposit(staker2, asset, stableCoinRewardsVaultProxy, _maxAmount, false);
+        actions.simpleDeposit(staker3, asset, stableCoinRewardsVaultProxy, (_maxAmount - 1), false);
+    }
+
+    function testConvertToShareWhenSupplyIsZero() public {
+        uint256 supply = stableCoinRewardsVaultProxy.totalSupply();
+        uint256 shares = stableCoinRewardsVaultProxy.convertToShares(5000000000000000000000);
+        actions.simpleMint(staker1, asset, stableCoinRewardsVaultProxy, 5000000000000000000000, false);
+        assertEq(supply, 0);
+        assertEq(shares, 5000000000000000000000);
+    }
+
+    function testOnlyAdminCanPause() public {
+        vm.expectRevert();
+        stableCoinRewardsVaultProxy.pause();
+        vm.startPrank(contractAdmin);
+        stableCoinRewardsVaultProxy.pause();
+        stableCoinRewardsVaultProxy.unpause();
+        vm.stopPrank();
+    }
+
+    function testPausableFunctions() public {
+        // deposit
+        actions.simpleDeposit(staker1, asset, stableCoinRewardsVaultProxy, 5000000000000000000000, false);
+        // pause and try to use contract
+        vm.prank(contractAdmin);
+        stableCoinRewardsVaultProxy.pause();
+        actions.simpleDeposit(staker1, asset, stableCoinRewardsVaultProxy, 5000000000000000000000, true);
+        actions.simpleMint(staker1, asset, stableCoinRewardsVaultProxy, 5000000000000000000000, true);
+        actions.simpleWithdraw(staker1, stableCoinRewardsVaultProxy, 5000000000000000000000, true);
+        actions.simpleRedeem(staker1, stableCoinRewardsVaultProxy, 5000000000000000000000, true);
+        actions.simpleClaimRewards(staker1, stableCoinRewardsVaultProxy, true);
+        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVaultProxy, 8 days, false, "Will not revert even if paused", 5000000000000000000000);
+
+        // unpause and try to use contract
+        vm.prank(contractAdmin);
+        stableCoinRewardsVaultProxy.unpause();
+        vm.warp(block.timestamp + 90 days);
+        actions.simpleDeposit(staker1, asset, stableCoinRewardsVaultProxy, 5000000000000000000000, false);
+        actions.simpleMint(staker1, asset, stableCoinRewardsVaultProxy, 5000000000000000000000, false);
+        actions.simpleWithdraw(staker1, stableCoinRewardsVaultProxy, 5000000000000000000000, false);
+        actions.simpleRedeem(staker1, stableCoinRewardsVaultProxy, 5000000000000000000000, false);
+        actions.simpleClaimRewards(staker1, stableCoinRewardsVaultProxy, false);
+
+    }
+
     function testUpdateReward() public {}
     function testInitialize() public {}
     function testClaimRewards() public {}

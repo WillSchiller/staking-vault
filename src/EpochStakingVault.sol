@@ -28,15 +28,14 @@ contract EpochStakingVault is
     uint256 public constant LOCK_PERIOD = 90 days;
     uint256 public constant absoluteMinAmount = 1 * 1e18; // Min amount is 1 NEXD to prevent dusting attacks
 
-    
     /// @notice custom rewardToken if extending contract to include rewards in non-asset token
     /// @dev can be set to 0x0 for no rewards
     IERC20 public rewardToken;
 
     uint256 public currentEpoch;
     uint256 public startTime;
-    uint256 private minAmount;
-    uint256 private maxAmount;
+    uint256 public minAmount;
+    uint256 public maxAmount;
 
     event VaultInitialized(address indexed asset, string name, string symbol);
     event EpochStarted(uint256 indexed epoch, uint256 indexed start);
@@ -50,15 +49,15 @@ contract EpochStakingVault is
     error MinAmountTooLow();
     error MinAmountMustBeLessThanMaxAmount();
 
-    modifier isOpen() {
-        if (block.timestamp > startTime + DEPOSIT_WINDOW && block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
+    modifier isOpen() { 
+        if (block.timestamp >= startTime + DEPOSIT_WINDOW && block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
             revert EpochLocked();
         }
         _;
     }
 
-    modifier isLocked() {
-        if (block.timestamp < startTime + DEPOSIT_WINDOW || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
+    modifier isLocked() { 
+        if (block.timestamp < startTime + DEPOSIT_WINDOW || block.timestamp >= startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
             revert NotLocked();
         }
         _;
