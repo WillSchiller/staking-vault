@@ -64,7 +64,7 @@ contract EpochStakingVault is
     }
 
     modifier isMinAmount(uint256 amount) {
-        if (amount < minAmount) revert amountTooLow();
+        if (amount < minAmount) revert AmountTooLow();
         _;
     }
 
