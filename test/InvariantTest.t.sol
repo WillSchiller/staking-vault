@@ -82,7 +82,7 @@ contract InvariantTest is Test {
         
     }
 
-    function invariant_TotalDepositsMatchVault() public view {
+    function invariant_TotalDepositsMatchVault() public {
 
         uint256 deposits = handler.ghost_depositSum();
         uint256 donates = handler.ghost_donateSum();
@@ -101,7 +101,7 @@ contract InvariantTest is Test {
         );
     }
 
-    function invariant_RewardsLogic() public view{
+    function invariant_RewardsLogic() public {
         uint256 totalRewardsAdded = handler.ghost_rewardsAdded();
         uint256 totalRewardsClaimed = handler.ghost_rewardsClaimed();
         uint256 totalUnclaimedRewards = rewardToken.balanceOf(address(vault));

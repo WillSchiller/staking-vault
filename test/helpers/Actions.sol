@@ -59,14 +59,15 @@ contract Actions is Test {
 
     function simpleWithdraw(address user, StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
         vm.startPrank(user);
+        uint256 shares;
         if (expectRevert) {
             vm.expectRevert();
-            vault.withdraw(amount, user, user);
+            shares = vault.withdraw(amount, user, user);
         } else {
-            vault.withdraw(amount, user, user);
+            shares = vault.withdraw(amount, user, user);
         }
         vm.stopPrank();
-        return amount;
+        return shares;
     }
 
     function simpleRedeem(address user, StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {

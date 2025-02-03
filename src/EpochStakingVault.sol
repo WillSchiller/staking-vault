@@ -26,7 +26,6 @@ contract EpochStakingVault is
 
     uint256 public constant DEPOSIT_WINDOW = 7 days;
     uint256 public constant LOCK_PERIOD = 90 days;
-    uint256 public constant absoluteMinAmount = 1 * 1e18; // Min amount is 1 NEXD to prevent dusting attacks
 
     /// @notice custom rewardToken if extending contract to include rewards in non-asset token
     /// @dev can be set to 0x0 for no rewards
@@ -115,8 +114,6 @@ contract EpochStakingVault is
     }
 
     function updateMinAmount(uint256 _minAmount) external onlyRole(CONTRACT_ADMIN_ROLE) {
-        /// @notice setting minAmount to very low value opens attack vector for dusting attacks/ DoS / Inflation attacks
-        if (_minAmount < absoluteMinAmount) revert MinAmountTooLow();
         if (_minAmount >= maxAmount) revert MinAmountMustBeLessThanMaxAmount();
         minAmount = _minAmount;
     }
