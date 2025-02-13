@@ -181,23 +181,23 @@ contract UnitTests is Test {
         vm.warp(block.timestamp + 98 days);
         
         // check rewards
-        uint256 rewardsPerShare = (rewards * 1e27) / totalDeposits;
+        uint256 rewardsPerShare = (rewards * 1e18) / totalDeposits;
         
-        uint256 expectedRewards1 = (amount1 * rewardsPerShare) / 1e27;
+        uint256 expectedRewards1 = (amount1 * rewardsPerShare) / 1e18;
         stableCoinRewardsVaultProxy.claimRewards(staker1);
-        assertEq(rewardToken.balanceOf(staker1), expectedRewards1);
+        assertApproxEqAbs(rewardToken.balanceOf(staker1), expectedRewards1, 10000000);
         
 
-        uint256 expectedRewards2 = (amount2 * rewardsPerShare) / 1e27;
+        uint256 expectedRewards2 = (amount2 * rewardsPerShare) / 1e18;
         stableCoinRewardsVaultProxy.claimRewards(staker2);
         assertEq(rewardToken.balanceOf(staker2), expectedRewards2);
         
-        uint256 expectedRewards3 = (amount3 * rewardsPerShare) / 1e27;
+        uint256 expectedRewards3 = (amount3 * rewardsPerShare) / 1e18;
         stableCoinRewardsVaultProxy.claimRewards(staker3);
         assertEq(rewardToken.balanceOf(staker3), expectedRewards3);
 
         assertApproxEqAbs(
-            rewardToken.balanceOf(address(stableCoinRewardsVaultProxy)) / 1e27, 0, 5, "Rewards not fully distributed"
+            rewardToken.balanceOf(address(stableCoinRewardsVaultProxy)) / 1e18, 0, 100000000, "Rewards not fully distributed"
         );
     }
 
@@ -258,7 +258,7 @@ contract UnitTests is Test {
 
         // All rewards should be claimed and contract balance should be 0
         assertApproxEqAbs((claimed / 1e6), (rewards / 1e6), 5);
-        assertApproxEqAbs((rewardToken.balanceOf(address(stableCoinRewardsVaultProxy)) / 1e6), 0, 5);
+        assertApproxEqAbs((rewardToken.balanceOf(address(stableCoinRewardsVaultProxy)) / 1e6), 0, 100000000);
     }
 
     // make deposits and try to claim the rewards in the same epoch

@@ -57,7 +57,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
         if (totalSupply == 0) revert NoAssetsStaked();
         if (amount == 0) revert AmountCannotBeZero();
         REWARD_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
-        totalRewardsPerShareAccumulator += amount.mulDiv(1e27, totalSupply, Math.Rounding.Floor);
+        totalRewardsPerShareAccumulator += amount.mulDiv(1e18, totalSupply, Math.Rounding.Floor);
         emit RewardsAdded(currentEpoch, amount);
     }
 
@@ -77,14 +77,14 @@ contract StableCoinRewardsVault is EpochStakingVault {
         UserInfo memory _user = userInfo[user];
         uint256 _shares = balanceOf(user);
         return _shares.mulDiv(
-            claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor
+            claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e18, Math.Rounding.Floor
         ) + _user.unclaimedRewards;
     }
 
     function allRewards(address user) public view returns (uint256 rewards) {
         UserInfo memory _user = userInfo[user];
         uint256 _shares = balanceOf(user);
-        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor)
+        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e18, Math.Rounding.Floor)
             + _user.unclaimedRewards;
     }
 
