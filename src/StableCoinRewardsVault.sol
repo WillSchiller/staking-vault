@@ -62,7 +62,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
     }
 
     /// ! Could limit to msg.sender == receiver but limits flexibility
-    function claimRewards(address receiver) external nonReentrant whenNotPaused {
+    function claimRewards(address receiver) external nonReentrant {
         syncToCurrentEpoch();
         uint256 rewards = claimableRewards(receiver);
         if (rewards == 0) revert NoClaimableRewards();

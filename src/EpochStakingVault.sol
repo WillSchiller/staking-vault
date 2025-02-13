@@ -5,7 +5,6 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol"; // could use transient strorage ReentrancyGuardTransientUpgradeable
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -15,7 +14,6 @@ contract EpochStakingVault is
     ERC4626Upgradeable,
     UUPSUpgradeable,
     AccessControlUpgradeable,
-    PausableUpgradeable,
     ReentrancyGuardUpgradeable
 {
     using Math for uint256;
@@ -94,7 +92,6 @@ contract EpochStakingVault is
         __ERC4626_init(_asset);
         __ERC20_init(_name, _symbol);
         __UUPSUpgradeable_init();
-        __Pausable_init();
         __ReentrancyGuard_init();
         _grantRole(CONTRACT_ADMIN_ROLE, contractAdmin);
         _grantRole(EPOCH_MANAGER_ROLE, epochManager);
@@ -103,14 +100,6 @@ contract EpochStakingVault is
         maxAmount = _maxAmount;
         maxPoolSize = _maxPoolSize;
         emit VaultInitialized(address(_asset), _name, _symbol);
-    }
-    
-    function pause() external virtual onlyRole(CONTRACT_ADMIN_ROLE) {
-        _pause();
-    }
-
-    function unpause() external virtual onlyRole(CONTRACT_ADMIN_ROLE) {
-        _unpause();
     }
 
     function updateMinAmount(uint256 _minAmount) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
@@ -167,7 +156,6 @@ contract EpochStakingVault is
         isOpen
         isMinAmount(assets)
         nonReentrant
-        whenNotPaused
         returns (uint256)
     {
         if (totalSupply() + assets > maxPoolSize) revert PoolMaxSizeReached();
@@ -181,7 +169,6 @@ contract EpochStakingVault is
         isOpen
         isMinAmount(_convertToAssets(shares, Math.Rounding.Ceil))
         nonReentrant
-        whenNotPaused
         returns (uint256)
     {
         if (totalSupply() + _convertToAssets(shares, Math.Rounding.Ceil) > maxPoolSize) revert PoolMaxSizeReached();
@@ -194,7 +181,6 @@ contract EpochStakingVault is
         override
         isOpen
         nonReentrant
-        whenNotPaused
         returns (uint256)
     {
         return super.withdraw(assets, receiver, owner);
@@ -206,7 +192,6 @@ contract EpochStakingVault is
         override
         isOpen
         nonReentrant
-        whenNotPaused
         returns (uint256)
     {
         return super.redeem(shares, receiver, owner);

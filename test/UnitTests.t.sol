@@ -121,7 +121,7 @@ contract UnitTests is Test {
         assertEq(supply, 0);
         assertEq(shares, 5000000000000000000000);
     }
-
+    /*
     function testOnlyAdminCanPause() public {
         vm.expectRevert();
         stableCoinRewardsVaultProxy.pause();
@@ -155,7 +155,7 @@ contract UnitTests is Test {
         actions.simpleClaimRewards(staker1, stableCoinRewardsVaultProxy, false);
 
     }
-
+    */
     function testUpdateReward() public {}
     function testInitialize() public {}
     function testClaimRewards() public {}
