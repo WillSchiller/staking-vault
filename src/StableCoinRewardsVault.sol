@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
 import {EpochStakingVault} from "./EpochStakingVault.sol";
@@ -12,6 +12,8 @@ contract StableCoinRewardsVault is EpochStakingVault {
 
     uint256 public totalRewardsPerShareAccumulator;
     uint256 public claimableRewardsPerShareAccumulator;
+
+    IERC20 public constant REWARD_TOKEN = IERC20(0x7AC8519283B1bba6d683FF555A12318Ec9265229); //update for mainnet
 
     struct UserInfo {
         uint256 unclaimedRewards;
@@ -44,9 +46,9 @@ contract StableCoinRewardsVault is EpochStakingVault {
         address _rewardsManager,
         uint256 _minAmount,
         uint256 _maxAmount,
-        IERC20 _rewardToken
+        uint256 _maxPoolSize
     ) public override initializer {
-        super.initialize(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount, _rewardToken);
+        super.initialize(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount, _maxPoolSize);
     }
 
     /// Is REWARDS_MANAGER_ROLE redudnant secuirty/ Non issue if someone donates rewards?
@@ -54,7 +56,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) revert NoAssetsStaked();
         if (amount == 0) revert AmountCannotBeZero();
-        rewardToken.safeTransferFrom(msg.sender, address(this), amount);
+        REWARD_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
         totalRewardsPerShareAccumulator += amount.mulDiv(1e27, totalSupply, Math.Rounding.Floor);
         emit RewardsAdded(currentEpoch, amount);
     }
@@ -67,7 +69,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
         UserInfo storage _user = userInfo[receiver];
         _user.rewardsPerShareDebt = claimableRewardsPerShareAccumulator;
         _user.unclaimedRewards = 0;
-        rewardToken.safeTransfer(receiver, rewards);
+        REWARD_TOKEN.safeTransfer(receiver, rewards);
         emit RewardsClaimed(receiver, rewards);
     }
 
@@ -114,8 +116,8 @@ contract StableCoinRewardsVault is EpochStakingVault {
 
     function syncToCurrentEpoch() internal {
         if (
-            block.timestamp < startTime + DEPOSIT_WINDOW
-                || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD
+            (block.timestamp < startTime + DEPOSIT_WINDOW
+                || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD)
                     && totalRewardsPerShareAccumulator != claimableRewardsPerShareAccumulator
         ) {
             claimableRewardsPerShareAccumulator = totalRewardsPerShareAccumulator;

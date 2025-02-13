@@ -20,6 +20,7 @@ contract InflationTest is Test {
     address public rewardsManager = address(0x0003);
     uint256 minAmount = 0; // set to 0 to allow any amount
     uint256 maxAmount = type(uint256).max; // set to max to allow any amounts
+    uint256 maxPoolSize = 100000000000000000000000000; // 2_000_000 of tokens @ 0.02
 
     address staker1 = address(0x1234);
     address hacker = address(0x5678);
@@ -56,7 +57,7 @@ contract InflationTest is Test {
             address(stableCoinRewardsVault),
             abi.encodeCall(
                 stableCoinRewardsVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL",contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, rewardToken)
+                (IERC20(address(asset)), "Vault Name", "SYMBOL",contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, maxPoolSize)
             )
         );
 

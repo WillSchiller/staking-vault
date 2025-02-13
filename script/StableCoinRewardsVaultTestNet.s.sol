@@ -23,6 +23,7 @@ contract Deploy is Script {
     /// params
     uint256 public minAmount = 1 * 1e18; // 1 NEXD 
     uint256 public maxAmount = 5000000 * 1e18; // $100k of NEXD @ $0.02
+    uint256 public maxPoolSize = 100000000 * 1e18; // $2M of NEXD @ $0.02
 
     /// tokens
     IERC20 public asset = IERC20(address(0xfc4F032EdB7DE1c5cBd3c6700d56520458349C46)); // Testnet NEXD token
@@ -33,8 +34,8 @@ contract Deploy is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey); 
 
-        USDN usdn = new USDN();
-        rewardToken = IERC20(address(usdn));
+        //USDN usdn = new USDN();
+        //rewardToken = IERC20(address(usdn));
 
         console2.log("Deploying StableCoinRewardsVault with asset: %s, rewardToken: %s", address(asset), address(rewardToken));
 
@@ -52,8 +53,9 @@ contract Deploy is Script {
                     epochManager, 
                     rewardsManager,
                     minAmount, 
-                    maxAmount, 
-                    rewardToken)
+                    maxAmount,
+                    maxPoolSize
+                )
             )
         );
 

@@ -19,6 +19,7 @@ contract EpochStakingVaultTest is Test {
     address public tester = address(0x0004);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
+    uint256 maxPoolSize = 100000000000000000000000000; // 2_000_000 of tokens @ 0.02
 
     function setUp() public {
         vm.warp(104 days + 1);
@@ -44,7 +45,7 @@ contract EpochStakingVaultTest is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(epochStakingVault),
             abi.encodeCall(
-                EpochStakingVault.initialize, (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, rewardToken)
+                EpochStakingVault.initialize, (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, maxPoolSize)
             )
         );
         epochStakingVaultProxy = EpochStakingVault(address(proxy));

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -28,14 +28,10 @@ contract EpochStakingVault is
     uint256 public constant DEPOSIT_WINDOW = 7 days;
     uint256 public constant LOCK_PERIOD = 90 days;
 
-    /// @notice custom rewardToken if extending contract to include rewards in non-asset token
-    /// @dev can be set to 0x0 for no rewards
-    IERC20 public rewardToken;
-
     uint256 public currentEpoch;
     uint256 public startTime;
-    uint256 public minDeposit;
-    uint256 public maxDeposit;
+    uint256 public minAmount;
+    uint256 public maxAmount;
     uint256 public maxPoolSize;
 
     event VaultInitialized(address indexed asset, string name, string symbol);
@@ -47,9 +43,10 @@ contract EpochStakingVault is
     error EpochInProgress();
     error NotLocked();
     error InvalidClaim();
-    error minDepositTooLow();
-    error minDepositMustBeLessThanmaxDeposit();
+    error MinAmountTooLow();
+    error MinAmountMustBeLessThanMaxAmount();
     error ModifyingPoolParametersOutsidePermittedInterval();
+    error PoolMaxSizeReached();
 
     modifier isOpen() { 
         if (block.timestamp >= startTime + DEPOSIT_WINDOW && block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
@@ -65,8 +62,8 @@ contract EpochStakingVault is
         _;
     }
 
-    modifier isminDeposit(uint256 amount) {
-        if (amount < minDeposit) revert AmountTooLow();
+    modifier isMinAmount(uint256 amount) {
+        if (amount < minAmount) revert AmountTooLow();
         _;
     }
 
@@ -83,17 +80,16 @@ contract EpochStakingVault is
         address contractAdmin,
         address epochManager,
         address rewardsManager,
-        uint256 _minDeposit,
-        uint256 _maxDeposit,
-        uint256 _maxPoolSize,
-        IERC20 _RewardToken
+        uint256 _minAmount,
+        uint256 _maxAmount,
+        uint256 _maxPoolSize
     ) public virtual initializer {
         /// Ensure asset is NEXD and ensure asset is decimals 18
         /// Initialize ERC4626 with the staked token (asset)
         /// Initialize the underlying ERC20 (vault token)
         /// Initialize UUPSUpgradeable, PausableUpgradeable and ReentrancyGuardUpgradeable
         /// Grant roles to contractAdmin, epochManager, rewardsManager
-        /// Set minDeposit and maxDeposit
+        /// Set minAmount and maxAmount
         /// if (address(_asset) != address(0x3858567501fbf030BD859EE831610fCc710319f4)) revert InvalidAsset(); uncomment this line in production
         __ERC4626_init(_asset);
         __ERC20_init(_name, _symbol);
@@ -103,10 +99,9 @@ contract EpochStakingVault is
         _grantRole(CONTRACT_ADMIN_ROLE, contractAdmin);
         _grantRole(EPOCH_MANAGER_ROLE, epochManager);
         _grantRole(REWARDS_MANAGER_ROLE, rewardsManager);
-        minDeposit = _minDeposit;
-        maxDeposit = _maxDeposit;
+        minAmount = _minAmount;
+        maxAmount = _maxAmount;
         maxPoolSize = _maxPoolSize;
-        rewardToken = _RewardToken;
         emit VaultInitialized(address(_asset), _name, _symbol);
     }
     
@@ -118,15 +113,15 @@ contract EpochStakingVault is
         _unpause();
     }
 
-    function updateMinDeposit(uint256 _minDeposit) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
+    function updateMinAmount(uint256 _minAmount) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
         if (block.timestamp > startTime + ONE_DAY) revert ModifyingPoolParametersOutsidePermittedInterval();
-        if (_minDeposit >= maxDeposit) revert minDepositMustBeLessThanmaxDeposit();
-        minDeposit = _minDeposit;
+        if (_minAmount >= maxAmount) revert MinAmountMustBeLessThanMaxAmount();
+        minAmount = _minAmount;
     }
 
-    function updateMaxDeposit(uint256 _maxDeposit) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
+    function updateMaxAmount(uint256 _maxAmount) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
         if (block.timestamp > startTime + ONE_DAY) revert ModifyingPoolParametersOutsidePermittedInterval();
-        maxDeposit = _maxDeposit;
+        maxAmount = _maxAmount;
     }
 
     function updateMaxPoolSize(uint256 _maxPoolSize) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
@@ -134,14 +129,14 @@ contract EpochStakingVault is
         maxPoolSize = _maxPoolSize;
     }
 
-    /// @dev See {IERC4626-maxDeposit}.
-    function maxDeposit(address) public view virtual returns (uint256) {
-        return maxDeposit;
+    /// @dev See {IERC4626-maxAmount}.
+    function maxDeposit(address) public view override returns (uint256) {
+        return maxAmount;
     }
 
     /// @dev See {IERC4626-maxMint}.
-    function maxMint(address) public view virtual returns (uint256) {
-        return _convertToShares(maxDeposit, Math.Rounding.Ceil);
+    function maxMint(address) public view override returns (uint256) {
+        return _convertToShares(maxAmount, Math.Rounding.Ceil);
     }
 
     function getDepositWindow() public view virtual returns (uint256) {
@@ -161,20 +156,21 @@ contract EpochStakingVault is
     }
 
     /// @dev only changes to deposit, mint, withdraw and redeem functions are to add the isOpen,
-    /// isminDeposit, pausable and nonReentrant modifiers
+    /// isMinAmount, pausable and nonReentrant modifiers
     /// @dev isOpen modifier restricts functions calls to only when the vault is in the deposit window
-    /// @dev isminDeposit modifier restricts funtions calls when the amount is less than the minDeposit
+    /// @dev isMinAmount modifier restricts funtions calls when the amount is less than the minAmount
     /// modifers should not affect ERC4626Upgradeable functionality in any other way.
     function deposit(uint256 assets, address receiver)
         public
         virtual
         override
         isOpen
-        isminDeposit(assets)
+        isMinAmount(assets)
         nonReentrant
         whenNotPaused
         returns (uint256)
     {
+        if (totalSupply() + assets > maxPoolSize) revert PoolMaxSizeReached();
         return super.deposit(assets, receiver);
     }
 
@@ -183,11 +179,12 @@ contract EpochStakingVault is
         virtual
         override
         isOpen
-        isminDeposit(_convertToAssets(shares, Math.Rounding.Ceil))
+        isMinAmount(_convertToAssets(shares, Math.Rounding.Ceil))
         nonReentrant
         whenNotPaused
         returns (uint256)
     {
+        if (totalSupply() + _convertToAssets(shares, Math.Rounding.Ceil) > maxPoolSize) revert PoolMaxSizeReached();
         return super.mint(shares, receiver);
     }
 

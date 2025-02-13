@@ -20,6 +20,7 @@ contract UnitTests is Test {
     address public rewardsManager = address(0x0003);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
+    uint256 maxPoolSize = 100000000000000000000000000; // 2_000_000 of tokens @ 0.02
 
     address staker1 = address(0x1234);
     address staker2 = address(0x5678);
@@ -55,7 +56,7 @@ contract UnitTests is Test {
             address(stableCoinRewardsVault),
             abi.encodeCall(
                 stableCoinRewardsVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL",contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, rewardToken)
+                (IERC20(address(asset)), "Vault Name", "SYMBOL",contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, maxPoolSize)
             )
         );
 
