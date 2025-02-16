@@ -10,7 +10,6 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 
 contract InvariantTest is Test {
-    StableCoinRewardsVault public stableCoinRewardsVault;
     StableCoinRewardsVault public vault;
     ERC20Mock public asset;
     ERC20Mock public rewardToken;
@@ -26,7 +25,7 @@ contract InvariantTest is Test {
 
         vm.warp(104 days + 1);
 
-        stableCoinRewardsVault = new StableCoinRewardsVault();
+        
 
           //setup mock tokens
         ERC20Mock implementation = new ERC20Mock();
@@ -42,24 +41,18 @@ contract InvariantTest is Test {
         vm.etch(assetTargetAddr, bytecode);
         asset = ERC20Mock(assetTargetAddr);
 
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(stableCoinRewardsVault),
-            abi.encodeCall(
-                stableCoinRewardsVault.initialize,
-                (
-                    IERC20(address(asset)),
-                    "Vault Name",
-                    "SYMBOL",
-                    contractAdmin, 
-                    epochManager,
-                    contractAdmin,
-                    minAmount,
-                    maxAmount,
-                    maxPoolSize
-                )
-            )
+        vault = new StableCoinRewardsVault(
+            asset,
+            "NEXD Rewards Vault",
+            "sNEXD",
+            contractAdmin,
+            epochManager,
+            rewardsManager,
+            minAmount,
+            maxAmount,
+            maxPoolSize
         );
-        vault = StableCoinRewardsVault(address(proxy));
+       
         vm.prank(epochManager);
         vault.startEpoch();
 

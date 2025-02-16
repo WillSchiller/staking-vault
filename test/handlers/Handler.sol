@@ -117,20 +117,21 @@ contract Handler is CommonBase, StdCheats, StdUtils {
     /**
      * @notice Claim rewards for a random actor.
      */
-    function claimRewards(
-        uint256 actorSeed
-    ) public useActor(actorSeed) countCall("claimRewards") {
-        uint256 earnedBefore = vault.claimableRewards(currentActor);
-        if (earnedBefore == 0) {
-            ghost_zeroClaims++;
-        }
-
-        vm.startPrank(currentActor);
-        vault.claimRewards(currentActor);
-        vm.stopPrank();
-
-        ghost_rewardsClaimed += earnedBefore;
+function claimRewards(uint256 actorSeed) public useActor(actorSeed) countCall("claimRewards") {
+    uint256 balanceBefore = rewardToken.balanceOf(currentActor);
+    
+    vm.startPrank(currentActor);
+    vault.claimRewards(currentActor);
+    vm.stopPrank();
+    
+    uint256 balanceAfter = rewardToken.balanceOf(currentActor);
+    uint256 claimed = balanceAfter - balanceBefore;
+    
+    if (claimed == 0) {
+        ghost_zeroClaims++;
     }
+    ghost_rewardsClaimed += claimed;
+}
 
     /**
      * @notice Add new rewards to the vault

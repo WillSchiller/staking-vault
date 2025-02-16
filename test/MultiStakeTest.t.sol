@@ -141,7 +141,7 @@ contract MultiStakeTest is Test {
         // 4) Check that the total assets are 0
         assertEq(stableCoinRewardsVaultProxy.totalAssets(), _totalSuppy);
         vm.assertApproxEqAbs(
-            rewardToken.balanceOf(address(stableCoinRewardsVaultProxy)) / 1e27,
+            rewardToken.balanceOf(address(stableCoinRewardsVaultProxy)) / 1e18,
             0,
             5,
             "Rewards not fully distributed"

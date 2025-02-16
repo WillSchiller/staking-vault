@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT 
 pragma solidity 0.8.28;
 
 import {EpochStakingVault} from "./EpochStakingVault.sol";
@@ -37,7 +37,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
         _;
     }
 
-    function initialize(
+    constructor(
         IERC20 _asset,
         string memory _name,
         string memory _symbol,
@@ -47,8 +47,8 @@ contract StableCoinRewardsVault is EpochStakingVault {
         uint256 _minAmount,
         uint256 _maxAmount,
         uint256 _maxPoolSize
-    ) public override initializer {
-        super.initialize(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount, _maxPoolSize);
+    )  EpochStakingVault(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount, _maxPoolSize) {
+    
     }
 
     /// Is REWARDS_MANAGER_ROLE redudnant secuirty/ Non issue if someone donates rewards?

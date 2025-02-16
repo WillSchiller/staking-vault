@@ -1,20 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol"; // could use transient strorage ReentrancyGuardTransientUpgradeable
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract EpochStakingVault is
-    Initializable,
-    ERC4626Upgradeable,
-    UUPSUpgradeable,
-    AccessControlUpgradeable,
-    ReentrancyGuardUpgradeable
+    ERC4626,
+    AccessControl,
+    ReentrancyGuard
 {
     using Math for uint256;
 
@@ -65,37 +62,21 @@ contract EpochStakingVault is
         _;
     }
 
-    /// @dev prevent implimentation initialization; only proxy should be initialized
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
 
-    function initialize(
+    constructor(
         IERC20 _asset,
         string memory _name,
         string memory _symbol,
-        address contractAdmin,
-        address epochManager,
-        address rewardsManager,
+        address _contractAdmin,
+        address _epochManager,
+        address _rewardsManager,
         uint256 _minAmount,
         uint256 _maxAmount,
         uint256 _maxPoolSize
-    ) public virtual initializer {
-        /// Ensure asset is NEXD and ensure asset is decimals 18
-        /// Initialize ERC4626 with the staked token (asset)
-        /// Initialize the underlying ERC20 (vault token)
-        /// Initialize UUPSUpgradeable, PausableUpgradeable and ReentrancyGuardUpgradeable
-        /// Grant roles to contractAdmin, epochManager, rewardsManager
-        /// Set minAmount and maxAmount
-        /// if (address(_asset) != address(0x3858567501fbf030BD859EE831610fCc710319f4)) revert InvalidAsset(); uncomment this line in production
-        __ERC4626_init(_asset);
-        __ERC20_init(_name, _symbol);
-        __UUPSUpgradeable_init();
-        __ReentrancyGuard_init();
-        _grantRole(CONTRACT_ADMIN_ROLE, contractAdmin);
-        _grantRole(EPOCH_MANAGER_ROLE, epochManager);
-        _grantRole(REWARDS_MANAGER_ROLE, rewardsManager);
+    ) ERC4626(_asset) ERC20(_name, _symbol) {
+        _grantRole(CONTRACT_ADMIN_ROLE, _contractAdmin);
+        _grantRole(EPOCH_MANAGER_ROLE, _epochManager);
+        _grantRole(REWARDS_MANAGER_ROLE, _rewardsManager);
         minAmount = _minAmount;
         maxAmount = _maxAmount;
         maxPoolSize = _maxPoolSize;
@@ -203,7 +184,4 @@ contract EpochStakingVault is
         currentEpoch++;
         emit EpochStarted(currentEpoch, block.timestamp);
     }
-
-    /// @dev restrict upgrades to the contract owner only.
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(CONTRACT_ADMIN_ROLE) {}
 }

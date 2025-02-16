@@ -11,7 +11,6 @@ import {Actions} from "./helpers/Actions.sol";
 
 contract InflationTest is Test {
     StableCoinRewardsVault public stableCoinRewardsVault;
-    StableCoinRewardsVault public stableCoinRewardsVaultProxy;
     Actions public actions;
     ERC20Mock public asset;
     ERC20Mock public rewardToken;
@@ -50,22 +49,24 @@ contract InflationTest is Test {
         asset = ERC20Mock(assetTargetAddr);
 
         //deploy implementation contract
-        stableCoinRewardsVault = new StableCoinRewardsVault();
-
-        // deploy proxy
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(stableCoinRewardsVault),
-            abi.encodeCall(
-                stableCoinRewardsVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL",contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, maxPoolSize)
-            )
+        stableCoinRewardsVault = new StableCoinRewardsVault(
+            asset,
+            "NEXD Rewards Vault",
+            "sNEXD",
+            contractAdmin,
+            epochManager,
+            rewardsManager,
+            minAmount,
+            maxAmount,
+            maxPoolSize
         );
 
+        // deploy proxy
+
         // set type of proxy and start epoch
-        stableCoinRewardsVaultProxy = StableCoinRewardsVault(address(proxy));
         vm.stopPrank();
         vm.prank(epochManager);
-        stableCoinRewardsVaultProxy.startEpoch();
+        stableCoinRewardsVault.startEpoch();
     }
 
 
@@ -77,23 +78,23 @@ contract InflationTest is Test {
         uint256 midAmount = 10_000 * 1e18;
 
         // Hacker mints 1 share
-        uint256 hackerShares = actions.simpleMint(hacker, asset, stableCoinRewardsVaultProxy, 1, false);
+        uint256 hackerShares = actions.simpleMint(hacker, asset, stableCoinRewardsVault, 1, false);
 
         // Hacker inflates assets in pool
 
         vm.prank(deployer);
         asset.mint(hacker, bigAmount);
         vm.prank(hacker);
-        asset.transfer(address(stableCoinRewardsVaultProxy), bigAmount);
+        asset.transfer(address(stableCoinRewardsVault), bigAmount);
 
         // user mints a big amount of shares
-        uint256 usershares = actions.simpleMint(staker1, asset, stableCoinRewardsVaultProxy, midAmount, false);
+        uint256 usershares = actions.simpleMint(staker1, asset, stableCoinRewardsVault, midAmount, false);
 
         // hacker burns share
-        actions.simpleRedeem(hacker, stableCoinRewardsVaultProxy, hackerShares, false);
+        actions.simpleRedeem(hacker, stableCoinRewardsVault, hackerShares, false);
 
         // user burns shares
-        actions.simpleRedeem(staker1, stableCoinRewardsVaultProxy, usershares, false);
+        actions.simpleRedeem(staker1, stableCoinRewardsVault, usershares, false);
 
         assert(asset.balanceOf(staker1) >= midAmount);
         assert(asset.balanceOf(hacker)<= bigAmount + 1);
@@ -106,23 +107,23 @@ contract InflationTest is Test {
         
         
         // Hacker mints 1 share
-        uint256 hackerShares = actions.simpleMint(hacker, asset, stableCoinRewardsVaultProxy, 1, false);
+        uint256 hackerShares = actions.simpleMint(hacker, asset, stableCoinRewardsVault, 1, false);
 
         // mint assets
         vm.prank(deployer);
         asset.mint(hacker, bigAmount);  
         // Hacker inflates assets in pool
         vm.prank(hacker);
-        asset.transfer(address(stableCoinRewardsVaultProxy), bigAmount);
+        asset.transfer(address(stableCoinRewardsVault), bigAmount);
 
         // user mints a big amount of shares
-        uint256 usershares = actions.simpleMint(staker1, asset, stableCoinRewardsVaultProxy, amount, false);
+        uint256 usershares = actions.simpleMint(staker1, asset, stableCoinRewardsVault, amount, false);
 
         // hacker burns share
-        actions.simpleRedeem(hacker, stableCoinRewardsVaultProxy, hackerShares, false);
+        actions.simpleRedeem(hacker, stableCoinRewardsVault, hackerShares, false);
 
         // user burns shares
-        actions.simpleRedeem(staker1, stableCoinRewardsVaultProxy, usershares, false);
+        actions.simpleRedeem(staker1, stableCoinRewardsVault, usershares, false);
 
         assert(asset.balanceOf(staker1) >= amount - (amount / 1e9));
         assert(asset.balanceOf(hacker)  <= bigAmount + 1 + (bigAmount / 1e9));
