@@ -81,6 +81,7 @@ contract UnitTests is Test {
     }
 
     function testIsLocked(uint256 rawAmount) public {
+        actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, rawAmount);
         actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 0 days, true, "Testing isOpen at 0 day", rawAmount);
         actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 1 days, true, "Testing isOpen at 1 day", rawAmount);
         // Testing overlaps if isOpen revert is true at 7 days islocked should be false
@@ -215,7 +216,6 @@ contract UnitTests is Test {
         
         vm.warp(block.timestamp + 98 days);
         actions.startEpoch(epochManager, stableCoinRewardsVault);
-        console.log("Epoch started");
 
         amount1 += actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, amount1);
         amount2 += actions.boundedDeposit(staker2, asset, stableCoinRewardsVault, amount2);
@@ -252,7 +252,6 @@ contract UnitTests is Test {
 
         stableCoinRewardsVault.claimRewards(staker1);
         stableCoinRewardsVault.claimRewards(staker2);
-        stableCoinRewardsVault.claimRewards(staker3);
         uint256 claimed = rewardToken.balanceOf(staker1);
         claimed += rewardToken.balanceOf(staker2);
         claimed += rewardToken.balanceOf(staker3);

@@ -16,7 +16,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
     IERC20 public constant REWARD_TOKEN = IERC20(0x7AC8519283B1bba6d683FF555A12318Ec9265229); //update for mainnet
 
     struct UserInfo {
-        uint256 unclaimedRewards;
+        uint256 totalRewardsClaimed;
         uint256 rewardsPerShareDebt; 
     }
 
@@ -32,8 +32,14 @@ contract StableCoinRewardsVault is EpochStakingVault {
     modifier updateReward(address user) {
         syncToCurrentEpoch();
         UserInfo storage _user = userInfo[user];
-        _user.unclaimedRewards = claimableRewards(user);
+        uint256 rewards = claimableRewards(user);
         _user.rewardsPerShareDebt = claimableRewardsPerShareAccumulator;
+
+        if (rewards > 0) {
+            _user.totalRewardsClaimed += rewards;
+            REWARD_TOKEN.safeTransfer(user, rewards);
+            emit RewardsClaimed(user, rewards);
+        }
         _;
     }
 
@@ -62,13 +68,13 @@ contract StableCoinRewardsVault is EpochStakingVault {
     }
 
     /// ! Could limit to msg.sender == receiver but limits flexibility
-    function claimRewards(address receiver) external nonReentrant {
+    function claimRewards(address receiver) public nonReentrant {
         syncToCurrentEpoch();
         uint256 rewards = claimableRewards(receiver);
         if (rewards == 0) revert NoClaimableRewards();
         UserInfo storage _user = userInfo[receiver];
         _user.rewardsPerShareDebt = claimableRewardsPerShareAccumulator;
-        _user.unclaimedRewards = 0;
+        _user.totalRewardsClaimed += rewards;
         REWARD_TOKEN.safeTransfer(receiver, rewards);
         emit RewardsClaimed(receiver, rewards);
     }
@@ -78,14 +84,13 @@ contract StableCoinRewardsVault is EpochStakingVault {
         uint256 _shares = balanceOf(user);
         return _shares.mulDiv(
             claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e18, Math.Rounding.Floor
-        ) + _user.unclaimedRewards;
+        );
     }
 
     function allRewards(address user) public view returns (uint256 rewards) {
         UserInfo memory _user = userInfo[user];
         uint256 _shares = balanceOf(user);
-        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e18, Math.Rounding.Floor)
-            + _user.unclaimedRewards;
+        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e18, Math.Rounding.Floor);
     }
 
     function deposit(uint256 assets, address receiver) public override updateReward(receiver) returns (uint256) {
@@ -117,9 +122,10 @@ contract StableCoinRewardsVault is EpochStakingVault {
     function syncToCurrentEpoch() internal {
         if (
             (block.timestamp < startTime + DEPOSIT_WINDOW
-                || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD)
-                    && totalRewardsPerShareAccumulator != claimableRewardsPerShareAccumulator
-        ) {
+            || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD)
+            && totalRewardsPerShareAccumulator != claimableRewardsPerShareAccumulator
+        ) 
+        {
             claimableRewardsPerShareAccumulator = totalRewardsPerShareAccumulator;
         }
     }

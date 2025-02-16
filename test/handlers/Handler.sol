@@ -78,11 +78,16 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         // Mint asset tokens to the actor so they can deposit
         asset.mint(currentActor, amount);
 
+        (uint256 claimedBefore,) = vault.userInfo(currentActor);
+
         // Approve & deposit
         vm.startPrank(currentActor);
         asset.approve(address(vault), amount);
         vault.deposit(amount, currentActor);
         vm.stopPrank();
+
+        (uint256 claimedAfter,) = vault.userInfo(currentActor);
+        ghost_rewardsClaimed += (claimedAfter - claimedBefore);
 
         // Track in ghost variable
         ghost_depositSum += amount;
@@ -96,6 +101,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         uint256 amount
     ) public useActor(actorSeed) countCall("withdraw") {
         uint256 userShares = vault.balanceOf(currentActor);
+        (uint256 claimedBefore,) = vault.userInfo(currentActor);
         if (userShares == 0) {
             ghost_zeroWithdrawals++;
             return;
@@ -110,6 +116,9 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         vm.startPrank(currentActor);
         vault.withdraw(amount, currentActor, currentActor);
         vm.stopPrank();
+
+        (uint256 claimedAfter,) = vault.userInfo(currentActor);
+        ghost_rewardsClaimed += (claimedAfter - claimedBefore);
 
         ghost_withdrawSum += amount;
     }
