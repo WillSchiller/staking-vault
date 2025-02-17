@@ -28,6 +28,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
     error NoAssetsStaked();
     error NoClaimableRewards();
     error AmountCannotBeZero();
+    error RewardAmountTooLowComparedToTotalSupply();
 
     modifier updateReward(address user) {
         syncToCurrentEpoch();
@@ -57,17 +58,19 @@ contract StableCoinRewardsVault is EpochStakingVault {
     
     }
 
-    /// Is REWARDS_MANAGER_ROLE redudnant secuirty/ Non issue if someone donates rewards?
     function addRewards(uint256 amount) external onlyRole(REWARDS_MANAGER_ROLE) isLocked {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) revert NoAssetsStaked();
         if (amount == 0) revert AmountCannotBeZero();
+
+        uint256 rewardPerShare = amount.mulDiv(1e27, totalSupply, Math.Rounding.Floor);
+        if (rewardPerShare == 0) revert RewardAmountTooLowComparedToTotalSupply();
+
         REWARD_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
-        totalRewardsPerShareAccumulator += amount.mulDiv(1e18, totalSupply, Math.Rounding.Floor);
+        totalRewardsPerShareAccumulator += rewardPerShare;
         emit RewardsAdded(currentEpoch, amount);
     }
 
-    /// ! Could limit to msg.sender == receiver but limits flexibility
     function claimRewards(address receiver) external nonReentrant {
         syncToCurrentEpoch();
         uint256 rewards = claimableRewards(receiver);
@@ -83,14 +86,14 @@ contract StableCoinRewardsVault is EpochStakingVault {
         UserInfo memory _user = userInfo[user];
         uint256 _shares = balanceOf(user);
         return _shares.mulDiv(
-            claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e18, Math.Rounding.Floor
+            claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor
         );
     }
 
     function allRewards(address user) public view returns (uint256 rewards) {
         UserInfo memory _user = userInfo[user];
         uint256 _shares = balanceOf(user);
-        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e18, Math.Rounding.Floor);
+        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor);
     }
 
     function deposit(uint256 assets, address receiver) public override updateReward(receiver) returns (uint256) {

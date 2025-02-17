@@ -19,7 +19,7 @@ contract UnitTests is Test {
     address public rewardsManager = address(0x0003);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
-    uint256 maxPoolSize = 100000000000000000000000000; // 2_000_000 of tokens @ 0.02
+    uint256 maxPoolSize = 50000000000000000000000000000000000000; // 20_000_000 of tokens @ 0.02
 
     address staker1 = address(0x1234);
     address staker2 = address(0x5678);
@@ -174,7 +174,7 @@ contract UnitTests is Test {
         //move to lock period and add rewards
         vm.warp(block.timestamp + 7 days+ 1);
         rewards = actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVault, rewards);
-
+        
         // rewards should == 0 until epoch finishe
         actions.claimAndExpectRevert(staker1, stableCoinRewardsVault);
         actions.claimAndExpectRevert(staker2, stableCoinRewardsVault);
@@ -183,23 +183,23 @@ contract UnitTests is Test {
         vm.warp(block.timestamp + 98 days);
         
         // check rewards
-        uint256 rewardsPerShare = (rewards * 1e18) / totalDeposits;
+        uint256 rewardsPerShare = (rewards * 1e27) / totalDeposits;
         
-        uint256 expectedRewards1 = (amount1 * rewardsPerShare) / 1e18;
+        uint256 expectedRewards1 = (amount1 * rewardsPerShare) / 1e27;
         stableCoinRewardsVault.claimRewards(staker1);
-        assertApproxEqAbs(rewardToken.balanceOf(staker1), expectedRewards1, 10000000);
+        assertApproxEqAbs(rewardToken.balanceOf(staker1), expectedRewards1, 100000);
         
 
-        uint256 expectedRewards2 = (amount2 * rewardsPerShare) / 1e18;
+        uint256 expectedRewards2 = (amount2 * rewardsPerShare) / 1e27;
         stableCoinRewardsVault.claimRewards(staker2);
         assertEq(rewardToken.balanceOf(staker2), expectedRewards2);
         
-        uint256 expectedRewards3 = (amount3 * rewardsPerShare) / 1e18;
+        uint256 expectedRewards3 = (amount3 * rewardsPerShare) / 1e27;
         stableCoinRewardsVault.claimRewards(staker3);
         assertEq(rewardToken.balanceOf(staker3), expectedRewards3);
 
         assertApproxEqAbs(
-            rewardToken.balanceOf(address(stableCoinRewardsVault)) / 1e18, 0, 100000000, "Rewards not fully distributed"
+            rewardToken.balanceOf(address(stableCoinRewardsVault)) / 1e27, 0, 100000, "Rewards not fully distributed"
         );
     }
 
@@ -257,8 +257,8 @@ contract UnitTests is Test {
         claimed += rewardToken.balanceOf(staker3);
 
         // All rewards should be claimed and contract balance should be 0
-        assertApproxEqAbs((claimed / 1e6), (rewards / 1e6), 1000000);
-        assertApproxEqAbs((rewardToken.balanceOf(address(stableCoinRewardsVault)) / 1e6), 0, 1000000);
+        assertApproxEqAbs((claimed / 1e6), (rewards / 1e6), 100000);
+        assertApproxEqAbs((rewardToken.balanceOf(address(stableCoinRewardsVault)) / 1e6), 0, 100000);
     }
 
     // make deposits and try to claim the rewards in the same epoch
