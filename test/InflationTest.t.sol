@@ -14,8 +14,8 @@ contract InflationTest is Test {
     Actions public actions;
     ERC20Mock public asset;
     ERC20Mock public rewardToken;
-    address public contractAdmin = address(0x0001);
-    address public epochManager = address(0x0002);
+    address public vaultAdmin = address(0x0001);
+    address public vaultManager = address(0x0002);
     address public rewardsManager = address(0x0003);
     uint256 minAmount = 0; // set to 0 to allow any amount
     uint256 maxAmount = type(uint256).max; // set to max to allow any amounts
@@ -53,9 +53,8 @@ contract InflationTest is Test {
             asset,
             "NEXD Rewards Vault",
             "sNEXD",
-            contractAdmin,
-            epochManager,
-            rewardsManager,
+            vaultAdmin,
+            vaultManager,
             minAmount,
             maxAmount,
             maxPoolSize
@@ -65,7 +64,7 @@ contract InflationTest is Test {
 
         // set type of proxy and start epoch
         vm.stopPrank();
-        vm.prank(epochManager);
+        vm.prank(vaultManager);
         stableCoinRewardsVault.startEpoch();
     }
 

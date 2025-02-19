@@ -43,7 +43,6 @@ contract Deploy is Script {
             "sNEXD",
             contractAdmin,
             epochManager,
-            rewardsManager,
             minAmount,
             maxAmount,
             maxPoolSize

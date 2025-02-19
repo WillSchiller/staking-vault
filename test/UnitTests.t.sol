@@ -14,9 +14,8 @@ contract UnitTests is Test {
     Actions public actions;
     ERC20Mock public asset;
     ERC20Mock public rewardToken;
-    address public contractAdmin = address(0x0001);
-    address public epochManager = address(0x0002);
-    address public rewardsManager = address(0x0003);
+    address public vaultAdmin = address(0x0001);
+    address public vaultManager = address(0x0002);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
     uint256 maxPoolSize = 50000000000000000000000000000000000000; // 20_000_000 of tokens @ 0.02
@@ -52,9 +51,8 @@ contract UnitTests is Test {
             asset,
             "NEXD Rewards Vault",
             "sNEXD",
-            contractAdmin,
-            epochManager,
-            rewardsManager,
+            vaultAdmin,
+            vaultManager,
             minAmount,
             maxAmount,
             maxPoolSize
@@ -63,7 +61,7 @@ contract UnitTests is Test {
         // deploy proxy
        
 
-        vm.prank(epochManager);
+        vm.prank(vaultManager);
         stableCoinRewardsVault.startEpoch();
     }
 
@@ -82,15 +80,15 @@ contract UnitTests is Test {
 
     function testIsLocked(uint256 rawAmount) public {
         actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, rawAmount);
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 0 days, true, "Testing isOpen at 0 day", rawAmount);
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 1 days, true, "Testing isOpen at 1 day", rawAmount);
+        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 0 days, true, "Testing isOpen at 0 day", rawAmount);
+        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 1 days, true, "Testing isOpen at 1 day", rawAmount);
         // Testing overlaps if isOpen revert is true at 7 days islocked should be false
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 7 days, false, "Testing isOpen at 1 day: expect revert", rawAmount);
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 7 days + 1, false, "Testing isOpen at 7 days + 1 second: expect revert", rawAmount);
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 30 days + 1, false, "Testing isOpen at 30 days + 1 second: expect revert", rawAmount);
+        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 7 days, false, "Testing isOpen at 1 day: expect revert", rawAmount);
+        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 7 days + 1, false, "Testing isOpen at 7 days + 1 second: expect revert", rawAmount);
+        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 30 days + 1, false, "Testing isOpen at 30 days + 1 second: expect revert", rawAmount);
         // Testing overlaps if isOpen revert is true at 97 days islocked should be false
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 97 days, true, "Testing isOpen at 97 days", rawAmount);
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 97 days + 1, true, "Testing isOpen at 97 days", rawAmount);
+        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 97 days, true, "Testing isOpen at 97 days", rawAmount);
+        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 97 days + 1, true, "Testing isOpen at 97 days", rawAmount);
     }
 
 
@@ -123,46 +121,6 @@ contract UnitTests is Test {
         assertEq(supply, 0);
         assertEq(shares, 5000000000000000000000);
     }
-    /*
-    function testOnlyAdminCanPause() public {
-        vm.expectRevert();
-        stableCoinRewardsVault.pause();
-        vm.startPrank(contractAdmin);
-        stableCoinRewardsVault.pause();
-        stableCoinRewardsVault.unpause();
-        vm.stopPrank();
-    }
-
-    function testPausableFunctions() public {
-        // deposit
-        actions.simpleDeposit(staker1, asset, stableCoinRewardsVault, 5000000000000000000000, false);
-        // pause and try to use contract
-        vm.prank(contractAdmin);
-        stableCoinRewardsVault.pause();
-        actions.simpleDeposit(staker1, asset, stableCoinRewardsVault, 5000000000000000000000, true);
-        actions.simpleMint(staker1, asset, stableCoinRewardsVault, 5000000000000000000000, true);
-        actions.simpleWithdraw(staker1, stableCoinRewardsVault, 5000000000000000000000, true);
-        actions.simpleRedeem(staker1, stableCoinRewardsVault, 5000000000000000000000, true);
-        actions.simpleClaimRewards(staker1, stableCoinRewardsVault, true);
-        actions.executeAddRewards(rewardsManager, asset, rewardToken, stableCoinRewardsVault, 8 days, false, "Will not revert even if paused", 5000000000000000000000);
-
-        // unpause and try to use contract
-        vm.prank(contractAdmin);
-        stableCoinRewardsVault.unpause();
-        vm.warp(block.timestamp + 90 days);
-        actions.simpleDeposit(staker1, asset, stableCoinRewardsVault, 5000000000000000000000, false);
-        actions.simpleMint(staker1, asset, stableCoinRewardsVault, 5000000000000000000000, false);
-        actions.simpleWithdraw(staker1, stableCoinRewardsVault, 5000000000000000000000, false);
-        actions.simpleRedeem(staker1, stableCoinRewardsVault, 5000000000000000000000, false);
-        actions.simpleClaimRewards(staker1, stableCoinRewardsVault, false);
-
-    }
-    */
-    function testUpdateReward() public {}
-    function testInitialize() public {}
-    function testClaimRewards() public {}
-    function testEarned() public {}
-    function testAddRewards() public {}
 
     function testSimpleRewardsDistribution(uint256 rewards, uint256 amount1, uint256 amount2, uint256 amount3) public {
         //deposit        
@@ -173,7 +131,7 @@ contract UnitTests is Test {
         
         //move to lock period and add rewards
         vm.warp(block.timestamp + 7 days+ 1);
-        rewards = actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVault, rewards);
+        rewards = actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
         
         // rewards should == 0 until epoch finishe
         actions.claimAndExpectRevert(staker1, stableCoinRewardsVault);
@@ -212,10 +170,10 @@ contract UnitTests is Test {
 
         vm.warp(block.timestamp + 8 days);  
 
-        rewards = actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVault, rewards);
+        rewards = actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
         
         vm.warp(block.timestamp + 98 days);
-        actions.startEpoch(epochManager, stableCoinRewardsVault);
+        actions.startEpoch(vaultManager, stableCoinRewardsVault);
 
         amount1 += actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, amount1);
         amount2 += actions.boundedDeposit(staker2, asset, stableCoinRewardsVault, amount2);
@@ -223,10 +181,10 @@ contract UnitTests is Test {
 
         vm.warp(block.timestamp + 8 days);
 
-        rewards += actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVault, rewards);
+        rewards += actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
 
         vm.warp(block.timestamp + 98 days);
-        actions.startEpoch(epochManager, stableCoinRewardsVault);  
+        actions.startEpoch(vaultManager, stableCoinRewardsVault);  
 
         amount1 += actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, amount1);
         amount2 += actions.boundedDeposit(staker2, asset, stableCoinRewardsVault, amount2);
@@ -234,10 +192,10 @@ contract UnitTests is Test {
 
         vm.warp(block.timestamp + 8 days); 
 
-        rewards += actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVault, rewards);
+        rewards += actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
 
         vm.warp(block.timestamp + 98 days);
-        actions.startEpoch(epochManager, stableCoinRewardsVault); 
+        actions.startEpoch(vaultManager, stableCoinRewardsVault); 
 
         // Test unclaimed rewards with various amount remaining (75%, 66%, 0%)
         amount1 -= actions.boundedWithdraw(staker1, stableCoinRewardsVault, (amount1 / 4)); 
@@ -246,7 +204,7 @@ contract UnitTests is Test {
 
         vm.warp(block.timestamp + 8 days); 
 
-        rewards += actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVault, rewards);
+        rewards += actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
       
         vm.warp(block.timestamp + 1000 days);
 
@@ -271,7 +229,7 @@ contract UnitTests is Test {
 
         // warp to lock period
         vm.warp(block.timestamp + 8 days);  
-        rewards = actions.boundedReward(rewardsManager, rewardToken, stableCoinRewardsVault, rewards);
+        rewards = actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
 
         // claim rewards in the same epoch
         actions.claimAndExpectRevert(staker1, stableCoinRewardsVault);

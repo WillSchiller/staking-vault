@@ -48,17 +48,16 @@ contract StableCoinRewardsVault is EpochStakingVault {
         IERC20 _asset,
         string memory _name,
         string memory _symbol,
-        address _contractAdmin,
-        address _epochManager,
-        address _rewardsManager,
+        address _vaultAdmin,
+        address _vaultManager,
         uint256 _minAmount,
         uint256 _maxAmount,
         uint256 _maxPoolSize
-    )  EpochStakingVault(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount, _maxPoolSize) {
+    )  EpochStakingVault(_asset, _name, _symbol, _vaultAdmin, _vaultManager, _minAmount, _maxAmount, _maxPoolSize) {
     
     }
 
-    function addRewards(uint256 amount) external onlyRole(REWARDS_MANAGER_ROLE) isLocked {
+    function addRewards(uint256 amount) external onlyRole(VAULT_MANAGER_ROLE) isLocked {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) revert NoAssetsStaked();
         if (amount == 0) revert AmountCannotBeZero();

@@ -15,9 +15,8 @@ contract EpochStakingVault is
 {
     using Math for uint256;
 
-    bytes32 public constant CONTRACT_ADMIN_ROLE = keccak256("CONTRACT_ADMIN_ROLE");
-    bytes32 public constant EPOCH_MANAGER_ROLE = keccak256("EPOCH_MANAGER_ROLE");
-    bytes32 public constant REWARDS_MANAGER_ROLE = keccak256("REWARDS_MANAGER_ROLE");
+    bytes32 public constant VAULT_ADMIN_ROLE = keccak256("VAULT_ADMIN_ROLE");
+    bytes32 public constant VAULT_MANAGER_ROLE = keccak256("VAULT_MANAGER_ROLE");
 
     uint256 public constant ONE_DAY = 1 days;
     uint256 public constant DEPOSIT_WINDOW = 7 days;
@@ -67,34 +66,34 @@ contract EpochStakingVault is
         IERC20 _asset,
         string memory _name,
         string memory _symbol,
-        address _contractAdmin,
-        address _epochManager,
-        address _rewardsManager,
+        address _vaultAdmin,
+        address _vaultManager,
         uint256 _minAmount,
         uint256 _maxAmount,
         uint256 _maxPoolSize
     ) ERC4626(_asset) ERC20(_name, _symbol) {
-        _grantRole(CONTRACT_ADMIN_ROLE, _contractAdmin);
-        _grantRole(EPOCH_MANAGER_ROLE, _epochManager);
-        _grantRole(REWARDS_MANAGER_ROLE, _rewardsManager);
+        _grantRole(VAULT_ADMIN_ROLE, _vaultAdmin);
+        _grantRole(VAULT_MANAGER_ROLE, _vaultManager);
+        _setRoleAdmin(VAULT_ADMIN_ROLE, VAULT_ADMIN_ROLE);
+        _setRoleAdmin(VAULT_MANAGER_ROLE, VAULT_ADMIN_ROLE);
         minAmount = _minAmount;
         maxAmount = _maxAmount;
         maxPoolSize = _maxPoolSize;
         emit VaultInitialized(address(_asset), _name, _symbol);
     }
 
-    function updateMinAmount(uint256 _minAmount) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
+    function updateMinAmount(uint256 _minAmount) external virtual isOpen onlyRole(VAULT_MANAGER_ROLE) {
         if (block.timestamp > startTime + ONE_DAY) revert ModifyingPoolParametersOutsidePermittedInterval();
         if (_minAmount >= maxAmount) revert MinAmountMustBeLessThanMaxAmount();
         minAmount = _minAmount;
     }
 
-    function updateMaxAmount(uint256 _maxAmount) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
+    function updateMaxAmount(uint256 _maxAmount) external virtual isOpen onlyRole(VAULT_MANAGER_ROLE) {
         if (block.timestamp > startTime + ONE_DAY) revert ModifyingPoolParametersOutsidePermittedInterval();
         maxAmount = _maxAmount;
     }
 
-    function updateMaxPoolSize(uint256 _maxPoolSize) external virtual isOpen onlyRole(CONTRACT_ADMIN_ROLE) {
+    function updateMaxPoolSize(uint256 _maxPoolSize) external virtual isOpen onlyRole(VAULT_MANAGER_ROLE) {
         if (block.timestamp > startTime + ONE_DAY) revert ModifyingPoolParametersOutsidePermittedInterval();
         maxPoolSize = _maxPoolSize;
     }
@@ -178,7 +177,7 @@ contract EpochStakingVault is
         return super.redeem(shares, receiver, owner);
     }
 
-    function startEpoch() public virtual onlyRole(EPOCH_MANAGER_ROLE) {
+    function startEpoch() public virtual onlyRole(VAULT_MANAGER_ROLE) {
         if (block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) revert EpochInProgress();
         startTime = block.timestamp;
         currentEpoch++;

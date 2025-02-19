@@ -12,8 +12,8 @@ contract EpochStakingVaultTest is Test {
 
     EpochStakingVault public epochStakingVault;
     ERC20Mock public asset;
-    address public contractAdmin = address(0x0001);
-    address public epochManager = address(0x0002);
+    address public vaultAdmin = address(0x0001);
+    address public vaultManager = address(0x0002);
     address public rewardsManager = address(0x0003);
     address public tester = address(0x0004);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
@@ -43,15 +43,14 @@ contract EpochStakingVaultTest is Test {
             asset,
             "NEXD Rewards Vault",
             "sNEXD",
-            contractAdmin,
-            epochManager,
-            rewardsManager,
+            vaultAdmin,
+            vaultManager,
             minAmount,
             maxAmount,
             maxPoolSize
         );
 
-        vm.prank(epochManager);
+        vm.prank(vaultManager);
         epochStakingVault.startEpoch();
 
     }
@@ -85,11 +84,11 @@ contract EpochStakingVaultTest is Test {
         bytes memory data = "";
 
         // Upgrade the proxy to the new implementation
-        vm.startPrank(contractAdmin);
+        vm.startPrank(vaultAdmin);
         epochStakingVault.upgradeToAndCall(address(newImplementation), data);
         vm.stopPrank();
 
-        vm.startPrank(contractAdmin);
+        vm.startPrank(vaultAdmin);
         epochStakingVault.upgradeToAndCall(address(newImplementation), data);
         vm.stopPrank();
 

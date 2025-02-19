@@ -12,8 +12,8 @@ contract StableCoinRewardsVaultTest is Test {
     StableCoinRewardsVault public stableCoinRewardsVault;
     ERC20Mock public asset;
     ERC20Mock public rewardToken;
-    address public contractAdmin = address(0x0001);
-    address public epochManager = address(0x0002);
+    address public vaultAdmin = address(0x0001);
+    address public vaultManager = address(0x0002);
     address public rewardsManager = address(0x0003);
     address public tester = address(0x0004);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
@@ -45,16 +45,15 @@ contract StableCoinRewardsVaultTest is Test {
             asset,
             "NEXD Rewards Vault",
             "sNEXD",
-            contractAdmin,
-            epochManager,
-            rewardsManager,
+            vaultAdmin,
+            vaultManager,
             minAmount,
             maxAmount,
             maxPoolSize
         );
 
        
-        vm.prank(epochManager);
+        vm.prank(vaultManager);
         stableCoinRewardsVault.startEpoch();
 
     }
@@ -78,47 +77,4 @@ contract StableCoinRewardsVaultTest is Test {
         vm.stopPrank();
     }
 
-    /*
-    function testAuthorizedUpgrade() public {
-        // Deploy a new implementation contract
-        StableCoinRewardsVault newImplementation = new StableCoinRewardsVault();
-
-        // Calculate the EIP-1967 implementation slot
-        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
-
-        bytes memory data = "";
-
-        // Upgrade the proxy to the new implementation
-        vm.startPrank(contractAdmin);
-        stableCoinRewardsVault.upgradeToAndCall(address(newImplementation), data);
-        vm.stopPrank();
-
-        vm.startPrank(contractAdmin);
-        stableCoinRewardsVault.upgradeToAndCall(address(newImplementation), data);
-        vm.stopPrank();
-
-        StableCoinRewardsVault authorizedImplementation = new StableCoinRewardsVault();
-
-        vm.startPrank(tester);
-        vm.expectRevert();
-        stableCoinRewardsVault.upgradeToAndCall(address(authorizedImplementation), data);
-        vm.stopPrank();
-
-        // Verify that the implementation address was updated in the proxy storage
-        address storedImplementation =
-            address(uint160(uint256(vm.load(address(stableCoinRewardsVault), implementationSlot))));
-        assertEq(storedImplementation, address(newImplementation));
-    }
-
-    // testing cannot interact with implimentation contract
-    function testCannotUseImplimentation() public {
-        vm.startPrank(tester);
-        asset.approve(address(stableCoinRewardsVault), 20000 * 1e18);
-        vm.expectRevert();
-        stableCoinRewardsVault.deposit(10000 * 1e18, msg.sender);
-        asset.approve(address(stableCoinRewardsVault), 20000 * 1e18);
-        stableCoinRewardsVault.deposit(10000 * 1e18, msg.sender);
-    }
-
-    */
 }
