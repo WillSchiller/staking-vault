@@ -238,4 +238,11 @@ contract UnitTests is Test {
 
     }
 
+    function testOnlyManagerCanStartEpoch() public {
+        vm.expectRevert(); // expect revert if not manager
+        actions.startEpoch(staker1, stableCoinRewardsVault);
+        vm.warp(block.timestamp + 97 days); //end current epoch
+        actions.startEpoch(vaultManager, stableCoinRewardsVault);
+    }
+
 }

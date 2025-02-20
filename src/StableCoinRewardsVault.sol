@@ -121,6 +121,11 @@ contract StableCoinRewardsVault is EpochStakingVault {
         return super.redeem(shares, receiver, owner);
     }
 
+    function startEpoch() public override {
+        syncToCurrentEpoch();
+        super.startEpoch();
+    }
+
     function syncToCurrentEpoch() internal {
         if (
             (block.timestamp < startTime + DEPOSIT_WINDOW
