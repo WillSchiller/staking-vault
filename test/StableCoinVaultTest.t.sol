@@ -10,15 +10,15 @@ import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.s
 
 contract StableCoinRewardsVaultTest is Test {
     StableCoinRewardsVault public stableCoinRewardsVault;
-    StableCoinRewardsVault public stableCoinRewardsVaultProxy;
     ERC20Mock public asset;
     ERC20Mock public rewardToken;
-    address public contractAdmin = address(0x0001);
-    address public epochManager = address(0x0002);
+    address public vaultAdmin = address(0x0001);
+    address public vaultManager = address(0x0002);
     address public rewardsManager = address(0x0003);
     address public tester = address(0x0004);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
+    uint256 maxPoolSize = 100000000000000000000000000; // 2_000_000 of tokens @ 0.02
 
     function setUp() public {
         vm.warp(104 days + 1);
@@ -41,78 +41,40 @@ contract StableCoinRewardsVaultTest is Test {
         asset.mint(tester, 10_000_000 * 1e18);
 
         //deploy implementation contract
-        stableCoinRewardsVault = new StableCoinRewardsVault();
-
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(stableCoinRewardsVault),
-            abi.encodeCall(
-                stableCoinRewardsVault.initialize,
-                (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager,  minAmount, maxAmount, rewardToken)
-            )
+        stableCoinRewardsVault = new StableCoinRewardsVault(
+            asset,
+            "NEXD Rewards Vault",
+            "sNEXD",
+            vaultAdmin,
+            vaultManager,
+            minAmount,
+            maxAmount,
+            maxPoolSize
         );
-        stableCoinRewardsVaultProxy = StableCoinRewardsVault(address(proxy));
-        vm.prank(epochManager);
-        stableCoinRewardsVaultProxy.startEpoch();
+
+       
+        vm.prank(vaultManager);
+        stableCoinRewardsVault.startEpoch();
 
     }
 
     function testDepositAndWithdraw() public {
         vm.startPrank(tester);
 
-        asset.approve(address(stableCoinRewardsVaultProxy), 10000 * 1e18);
-        uint256 sharesMinted = stableCoinRewardsVaultProxy.deposit(10000 * 1e18, tester);
+        asset.approve(address(stableCoinRewardsVault), 10000 * 1e18);
+        uint256 sharesMinted = stableCoinRewardsVault.deposit(10000 * 1e18, tester);
 
         // Check shares and total assets
-        assertEq(stableCoinRewardsVaultProxy.balanceOf(tester), sharesMinted);
-        assertEq(stableCoinRewardsVaultProxy.totalAssets(), 10000 * 1e18);
+        assertEq(stableCoinRewardsVault.balanceOf(tester), sharesMinted);
+        assertEq(stableCoinRewardsVault.totalAssets(), 10000 * 1e18);
         // Withdraw assets
-        uint256 assetsWithdrawn = stableCoinRewardsVaultProxy.withdraw(10000 * 1e18, tester, tester);
+        uint256 assetsWithdrawn = stableCoinRewardsVault.withdraw(10000 * 1e18, tester, tester);
         // Check balances after withdrawal
-        assertEq(stableCoinRewardsVaultProxy.balanceOf(tester), 0);
-        assertEq(stableCoinRewardsVaultProxy.totalAssets(), 0);
+        assertEq(stableCoinRewardsVault.balanceOf(tester), 0);
+        assertEq(stableCoinRewardsVault.totalAssets(), 0);
         assertEq(assetsWithdrawn, 10000 * 1e18);
 
         vm.stopPrank();
     }
 
-    function testAuthorizedUpgrade() public {
-        // Deploy a new implementation contract
-        StableCoinRewardsVault newImplementation = new StableCoinRewardsVault();
-
-        // Calculate the EIP-1967 implementation slot
-        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
-
-        bytes memory data = "";
-
-        // Upgrade the proxy to the new implementation
-        vm.startPrank(contractAdmin);
-        stableCoinRewardsVaultProxy.upgradeToAndCall(address(newImplementation), data);
-        vm.stopPrank();
-
-        vm.startPrank(contractAdmin);
-        stableCoinRewardsVaultProxy.upgradeToAndCall(address(newImplementation), data);
-        vm.stopPrank();
-
-        StableCoinRewardsVault authorizedImplementation = new StableCoinRewardsVault();
-
-        vm.startPrank(tester);
-        vm.expectRevert();
-        stableCoinRewardsVaultProxy.upgradeToAndCall(address(authorizedImplementation), data);
-        vm.stopPrank();
-
-        // Verify that the implementation address was updated in the proxy storage
-        address storedImplementation =
-            address(uint160(uint256(vm.load(address(stableCoinRewardsVaultProxy), implementationSlot))));
-        assertEq(storedImplementation, address(newImplementation));
-    }
-
-    // testing cannot interact with implimentation contract
-    function testCannotUseImplimentation() public {
-        vm.startPrank(tester);
-        asset.approve(address(stableCoinRewardsVault), 20000 * 1e18);
-        vm.expectRevert();
-        stableCoinRewardsVault.deposit(10000 * 1e18, msg.sender);
-        asset.approve(address(stableCoinRewardsVaultProxy), 20000 * 1e18);
-        stableCoinRewardsVaultProxy.deposit(10000 * 1e18, msg.sender);
-    }
 }

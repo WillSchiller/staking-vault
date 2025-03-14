@@ -1,40 +1,32 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol"; // could use transient strorage ReentrancyGuardTransientUpgradeable
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract EpochStakingVault is
-    Initializable,
-    ERC4626Upgradeable,
-    UUPSUpgradeable,
-    AccessControlUpgradeable,
-    PausableUpgradeable,
-    ReentrancyGuardUpgradeable
+    ERC4626,
+    AccessControl,
+    ReentrancyGuard
 {
     using Math for uint256;
 
-    bytes32 public constant CONTRACT_ADMIN_ROLE = keccak256("CONTRACT_ADMIN_ROLE");
-    bytes32 public constant EPOCH_MANAGER_ROLE = keccak256("EPOCH_MANAGER_ROLE");
-    bytes32 public constant REWARDS_MANAGER_ROLE = keccak256("REWARDS_MANAGER_ROLE");
+    bytes32 public constant VAULT_ADMIN_ROLE = keccak256("VAULT_ADMIN_ROLE");
+    bytes32 public constant VAULT_MANAGER_ROLE = keccak256("VAULT_MANAGER_ROLE");
 
+    uint256 public constant ONE_DAY = 1 days;
     uint256 public constant DEPOSIT_WINDOW = 7 days;
     uint256 public constant LOCK_PERIOD = 90 days;
-
-    /// @notice custom rewardToken if extending contract to include rewards in non-asset token
-    /// @dev can be set to 0x0 for no rewards
-    IERC20 public rewardToken;
 
     uint256 public currentEpoch;
     uint256 public startTime;
     uint256 public minAmount;
     uint256 public maxAmount;
+    uint256 public maxPoolSize;
 
     event VaultInitialized(address indexed asset, string name, string symbol);
     event EpochStarted(uint256 indexed epoch, uint256 indexed start);
@@ -47,6 +39,8 @@ contract EpochStakingVault is
     error InvalidClaim();
     error MinAmountTooLow();
     error MinAmountMustBeLessThanMaxAmount();
+    error ModifyingPoolParametersOutsidePermittedInterval();
+    error PoolMaxSizeReached();
 
     modifier isOpen() { 
         if (block.timestamp >= startTime + DEPOSIT_WINDOW && block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
@@ -67,62 +61,44 @@ contract EpochStakingVault is
         _;
     }
 
-    /// @dev prevent implimentation initialization; only proxy should be initialized
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
 
-    function initialize(
+    constructor(
         IERC20 _asset,
         string memory _name,
         string memory _symbol,
-        address contractAdmin,
-        address epochManager,
-        address rewardsManager,
+        address _vaultAdmin,
+        address _vaultManager,
         uint256 _minAmount,
         uint256 _maxAmount,
-        IERC20 _RewardToken
-    ) public virtual initializer {
-        /// Ensure asset is NEXD and ensure asset is decimals 18
-        /// Initialize ERC4626 with the staked token (asset)
-        /// Initialize the underlying ERC20 (vault token)
-        /// Initialize UUPSUpgradeable, PausableUpgradeable and ReentrancyGuardUpgradeable
-        /// Grant roles to contractAdmin, epochManager, rewardsManager
-        /// Set minAmount and maxAmount
-        /// if (address(_asset) != address(0x3858567501fbf030BD859EE831610fCc710319f4)) revert InvalidAsset(); uncomment this line in production
-        __ERC4626_init(_asset);
-        __ERC20_init(_name, _symbol);
-        __UUPSUpgradeable_init();
-        __Pausable_init();
-        __ReentrancyGuard_init();
-        _grantRole(CONTRACT_ADMIN_ROLE, contractAdmin);
-        _grantRole(EPOCH_MANAGER_ROLE, epochManager);
-        _grantRole(REWARDS_MANAGER_ROLE, rewardsManager);
+        uint256 _maxPoolSize
+    ) ERC4626(_asset) ERC20(_name, _symbol) {
+        _grantRole(VAULT_ADMIN_ROLE, _vaultAdmin);
+        _grantRole(VAULT_MANAGER_ROLE, _vaultManager);
+        _setRoleAdmin(VAULT_ADMIN_ROLE, VAULT_ADMIN_ROLE);
+        _setRoleAdmin(VAULT_MANAGER_ROLE, VAULT_ADMIN_ROLE);
         minAmount = _minAmount;
         maxAmount = _maxAmount;
-        rewardToken = _RewardToken;
+        maxPoolSize = _maxPoolSize;
         emit VaultInitialized(address(_asset), _name, _symbol);
     }
-    
-    function pause() external onlyRole(CONTRACT_ADMIN_ROLE) {
-        _pause();
-    }
 
-    function unpause() external onlyRole(CONTRACT_ADMIN_ROLE) {
-        _unpause();
-    }
-
-    function updateMinAmount(uint256 _minAmount) external onlyRole(CONTRACT_ADMIN_ROLE) {
+    function updateMinAmount(uint256 _minAmount) external virtual isOpen onlyRole(VAULT_MANAGER_ROLE) {
+        if (block.timestamp > startTime + ONE_DAY) revert ModifyingPoolParametersOutsidePermittedInterval();
         if (_minAmount >= maxAmount) revert MinAmountMustBeLessThanMaxAmount();
         minAmount = _minAmount;
     }
 
-    function updateMaxAmount(uint256 _maxAmount) external onlyRole(CONTRACT_ADMIN_ROLE) {
+    function updateMaxAmount(uint256 _maxAmount) external virtual isOpen onlyRole(VAULT_MANAGER_ROLE) {
+        if (block.timestamp > startTime + ONE_DAY) revert ModifyingPoolParametersOutsidePermittedInterval();
         maxAmount = _maxAmount;
     }
 
-    /// @dev See {IERC4626-maxDeposit}.
+    function updateMaxPoolSize(uint256 _maxPoolSize) external virtual isOpen onlyRole(VAULT_MANAGER_ROLE) {
+        if (block.timestamp > startTime + ONE_DAY) revert ModifyingPoolParametersOutsidePermittedInterval();
+        maxPoolSize = _maxPoolSize;
+    }
+
+    /// @dev See {IERC4626-maxAmount}.
     function maxDeposit(address) public view override returns (uint256) {
         return maxAmount;
     }
@@ -130,6 +106,22 @@ contract EpochStakingVault is
     /// @dev See {IERC4626-maxMint}.
     function maxMint(address) public view override returns (uint256) {
         return _convertToShares(maxAmount, Math.Rounding.Ceil);
+    }
+
+    function getDepositWindow() public view virtual returns (uint256) {
+        return DEPOSIT_WINDOW;
+    }
+
+    function getLockPeriod() public view virtual returns (uint256) {
+        return LOCK_PERIOD;
+    }
+
+    function getStartLockPeriod() public view virtual returns (uint256) {
+        return startTime + DEPOSIT_WINDOW;
+    }
+
+    function getEndLockPeriod() public view virtual returns (uint256) {
+        return startTime + DEPOSIT_WINDOW + LOCK_PERIOD;
     }
 
     /// @dev only changes to deposit, mint, withdraw and redeem functions are to add the isOpen,
@@ -144,9 +136,9 @@ contract EpochStakingVault is
         isOpen
         isMinAmount(assets)
         nonReentrant
-        whenNotPaused
         returns (uint256)
     {
+        if (totalSupply() + assets > maxPoolSize) revert PoolMaxSizeReached();
         return super.deposit(assets, receiver);
     }
 
@@ -157,9 +149,9 @@ contract EpochStakingVault is
         isOpen
         isMinAmount(_convertToAssets(shares, Math.Rounding.Ceil))
         nonReentrant
-        whenNotPaused
         returns (uint256)
     {
+        if (totalSupply() + _convertToAssets(shares, Math.Rounding.Ceil) > maxPoolSize) revert PoolMaxSizeReached();
         return super.mint(shares, receiver);
     }
 
@@ -169,7 +161,6 @@ contract EpochStakingVault is
         override
         isOpen
         nonReentrant
-        whenNotPaused
         returns (uint256)
     {
         return super.withdraw(assets, receiver, owner);
@@ -181,19 +172,15 @@ contract EpochStakingVault is
         override
         isOpen
         nonReentrant
-        whenNotPaused
         returns (uint256)
     {
         return super.redeem(shares, receiver, owner);
     }
 
-    function startEpoch() public onlyRole(EPOCH_MANAGER_ROLE) {
+    function startEpoch() public virtual onlyRole(VAULT_MANAGER_ROLE) {
         if (block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) revert EpochInProgress();
         startTime = block.timestamp;
         currentEpoch++;
         emit EpochStarted(currentEpoch, block.timestamp);
     }
-
-    /// @dev restrict upgrades to the contract owner only.
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(CONTRACT_ADMIN_ROLE) {}
 }

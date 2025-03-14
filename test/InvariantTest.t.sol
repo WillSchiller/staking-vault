@@ -10,24 +10,21 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 
 contract InvariantTest is Test {
-    StableCoinRewardsVault public stableCoinRewardsVault;
     StableCoinRewardsVault public vault;
     ERC20Mock public asset;
     ERC20Mock public rewardToken;
     Handler public handler;
-    address public contractAdmin = address(0x0001);
-    address public epochManager = address(0x0002);
-    address public rewardsManager = address(0x0003);
+    address public vaultAdmin = address(0x0001);
+    address public vaultManager = address(0x0002);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
+    uint256 maxPoolSize = 100000000000000000000000000; // 2_000_000 of tokens @ 0.02
 
     function setUp() public {
 
         vm.warp(104 days + 1);
 
-        stableCoinRewardsVault = new StableCoinRewardsVault();
-
-          //setup mock tokens
+        //setup mock tokens
         ERC20Mock implementation = new ERC20Mock();
         bytes memory bytecode = address(implementation).code;
 
@@ -41,25 +38,18 @@ contract InvariantTest is Test {
         vm.etch(assetTargetAddr, bytecode);
         asset = ERC20Mock(assetTargetAddr);
 
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(stableCoinRewardsVault),
-            abi.encodeCall(
-                stableCoinRewardsVault.initialize,
-                (
-                    IERC20(address(asset)),
-                    "Vault Name",
-                    "SYMBOL",
-                    contractAdmin, 
-                    epochManager,
-                    contractAdmin,
-                    minAmount,
-                    maxAmount,
-                    rewardToken
-                )
-            )
+        vault = new StableCoinRewardsVault(
+            asset,
+            "NEXD Rewards Vault",
+            "sNEXD",
+            vaultAdmin,
+            vaultManager,
+            minAmount,
+            maxAmount,
+            maxPoolSize
         );
-        vault = StableCoinRewardsVault(address(proxy));
-        vm.prank(epochManager);
+       
+        vm.prank(vaultManager);
         vault.startEpoch();
 
 

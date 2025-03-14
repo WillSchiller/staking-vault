@@ -4,8 +4,6 @@ pragma solidity 0.8.28;
 import {StableCoinRewardsVault} from "../src/StableCoinRewardsVault.sol";
 import {USDN} from "../src/mock/USDN.sol"; // mock USDC token
 import {Script, console2} from "forge-std/Script.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
@@ -23,6 +21,7 @@ contract Deploy is Script {
     /// params
     uint256 public minAmount = 1 * 1e18; // 1 NEXD 
     uint256 public maxAmount = 5000000 * 1e18; // $100k of NEXD @ $0.02
+    uint256 public maxPoolSize = 100000000 * 1e18; // $2M of NEXD @ $0.02
 
     /// tokens
     IERC20 public asset = IERC20(address(0xfc4F032EdB7DE1c5cBd3c6700d56520458349C46)); // Testnet NEXD token
@@ -38,26 +37,16 @@ contract Deploy is Script {
 
         console2.log("Deploying StableCoinRewardsVault with asset: %s, rewardToken: %s", address(asset), address(rewardToken));
 
-        implimentation = new StableCoinRewardsVault();
-
-         ERC1967Proxy proxy = new ERC1967Proxy(
-            address(implimentation),
-            abi.encodeCall(
-                implimentation.initialize,
-                (
-                    IERC20(address(asset)),
-                    "Staked Nexade",
-                    "sNEXD",
-                    contractAdmin, 
-                    epochManager, 
-                    rewardsManager,
-                    minAmount, 
-                    maxAmount, 
-                    rewardToken)
-            )
+        vault = new StableCoinRewardsVault(
+            asset,
+            "NEXD Rewards Vault",
+            "sNEXD",
+            contractAdmin,
+            epochManager,
+            minAmount,
+            maxAmount,
+            maxPoolSize
         );
-
-        vault = StableCoinRewardsVault(address(proxy));
         console2.log("Vault deployed at: %s", address(vault));
         vm.stopBroadcast();
     }

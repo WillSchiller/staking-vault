@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT 
 pragma solidity 0.8.28;
 
 import {EpochStakingVault} from "./EpochStakingVault.sol";
@@ -13,8 +13,10 @@ contract StableCoinRewardsVault is EpochStakingVault {
     uint256 public totalRewardsPerShareAccumulator;
     uint256 public claimableRewardsPerShareAccumulator;
 
+    IERC20 public constant REWARD_TOKEN = IERC20(0x7AC8519283B1bba6d683FF555A12318Ec9265229); //update for mainnet
+
     struct UserInfo {
-        uint256 unclaimedRewards;
+        uint256 totalRewardsClaimed;
         uint256 rewardsPerShareDebt; 
     }
 
@@ -26,48 +28,56 @@ contract StableCoinRewardsVault is EpochStakingVault {
     error NoAssetsStaked();
     error NoClaimableRewards();
     error AmountCannotBeZero();
+    error RewardAmountTooLowComparedToTotalSupply();
 
     modifier updateReward(address user) {
         syncToCurrentEpoch();
         UserInfo storage _user = userInfo[user];
-        _user.unclaimedRewards = claimableRewards(user);
+        uint256 rewards = claimableRewards(user);
         _user.rewardsPerShareDebt = claimableRewardsPerShareAccumulator;
+
+        if (rewards > 0) {
+            _user.totalRewardsClaimed += rewards;
+            REWARD_TOKEN.safeTransfer(user, rewards);
+            emit RewardsClaimed(user, rewards);
+        }
         _;
     }
 
-    function initialize(
+    constructor(
         IERC20 _asset,
         string memory _name,
         string memory _symbol,
-        address _contractAdmin,
-        address _epochManager,
-        address _rewardsManager,
+        address _vaultAdmin,
+        address _vaultManager,
         uint256 _minAmount,
         uint256 _maxAmount,
-        IERC20 _rewardToken
-    ) public override initializer {
-        super.initialize(_asset, _name, _symbol, _contractAdmin, _epochManager, _rewardsManager, _minAmount, _maxAmount, _rewardToken);
+        uint256 _maxPoolSize
+    )  EpochStakingVault(_asset, _name, _symbol, _vaultAdmin, _vaultManager, _minAmount, _maxAmount, _maxPoolSize) {
+    
     }
 
-    /// Is REWARDS_MANAGER_ROLE redudnant secuirty/ Non issue if someone donates rewards?
-    function addRewards(uint256 amount) external onlyRole(REWARDS_MANAGER_ROLE) isLocked {
+    function addRewards(uint256 amount) external onlyRole(VAULT_MANAGER_ROLE) isLocked {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) revert NoAssetsStaked();
         if (amount == 0) revert AmountCannotBeZero();
-        rewardToken.safeTransferFrom(msg.sender, address(this), amount);
-        totalRewardsPerShareAccumulator += amount.mulDiv(1e27, totalSupply, Math.Rounding.Floor);
+
+        uint256 rewardPerShare = amount.mulDiv(1e27, totalSupply, Math.Rounding.Floor);
+        if (rewardPerShare == 0) revert RewardAmountTooLowComparedToTotalSupply();
+
+        REWARD_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
+        totalRewardsPerShareAccumulator += rewardPerShare;
         emit RewardsAdded(currentEpoch, amount);
     }
 
-    /// ! Could limit to msg.sender == receiver but limits flexibility
-    function claimRewards(address receiver) external nonReentrant whenNotPaused {
+    function claimRewards(address receiver) external nonReentrant {
         syncToCurrentEpoch();
         uint256 rewards = claimableRewards(receiver);
         if (rewards == 0) revert NoClaimableRewards();
         UserInfo storage _user = userInfo[receiver];
         _user.rewardsPerShareDebt = claimableRewardsPerShareAccumulator;
-        _user.unclaimedRewards = 0;
-        rewardToken.safeTransfer(receiver, rewards);
+        _user.totalRewardsClaimed += rewards;
+        REWARD_TOKEN.safeTransfer(receiver, rewards);
         emit RewardsClaimed(receiver, rewards);
     }
 
@@ -76,14 +86,13 @@ contract StableCoinRewardsVault is EpochStakingVault {
         uint256 _shares = balanceOf(user);
         return _shares.mulDiv(
             claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor
-        ) + _user.unclaimedRewards;
+        );
     }
 
     function allRewards(address user) public view returns (uint256 rewards) {
         UserInfo memory _user = userInfo[user];
         uint256 _shares = balanceOf(user);
-        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor)
-            + _user.unclaimedRewards;
+        return _shares.mulDiv(totalRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor);
     }
 
     function deposit(uint256 assets, address receiver) public override updateReward(receiver) returns (uint256) {
@@ -112,12 +121,18 @@ contract StableCoinRewardsVault is EpochStakingVault {
         return super.redeem(shares, receiver, owner);
     }
 
+    function startEpoch() public override {
+        syncToCurrentEpoch();
+        super.startEpoch();
+    }
+
     function syncToCurrentEpoch() internal {
         if (
-            block.timestamp < startTime + DEPOSIT_WINDOW
-                || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD
-                    && totalRewardsPerShareAccumulator != claimableRewardsPerShareAccumulator
-        ) {
+            (block.timestamp < startTime + DEPOSIT_WINDOW
+            || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD)
+            && totalRewardsPerShareAccumulator != claimableRewardsPerShareAccumulator
+        ) 
+        {
             claimableRewardsPerShareAccumulator = totalRewardsPerShareAccumulator;
         }
     }

@@ -11,14 +11,14 @@ import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.s
 contract EpochStakingVaultTest is Test {
 
     EpochStakingVault public epochStakingVault;
-    EpochStakingVault public epochStakingVaultProxy;
     ERC20Mock public asset;
-    address public contractAdmin = address(0x0001);
-    address public epochManager = address(0x0002);
+    address public vaultAdmin = address(0x0001);
+    address public vaultManager = address(0x0002);
     address public rewardsManager = address(0x0003);
     address public tester = address(0x0004);
     uint256 minAmount = 5000000000000000000000; // $100 of tokens @ 0.02
     uint256 maxAmount = 5000000000000000000000000; // 100_000 of tokens @ 0.02
+    uint256 maxPoolSize = 100000000000000000000000000; // 2_000_000 of tokens @ 0.02
 
     function setUp() public {
         vm.warp(104 days + 1);
@@ -39,39 +39,41 @@ contract EpochStakingVaultTest is Test {
 
 
         //deploy implementation contract
-        epochStakingVault = new EpochStakingVault();
-
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(epochStakingVault),
-            abi.encodeCall(
-                EpochStakingVault.initialize, (IERC20(address(asset)), "Vault Name", "SYMBOL", contractAdmin, epochManager, rewardsManager, minAmount, maxAmount, rewardToken)
-            )
+        epochStakingVault = new EpochStakingVault(
+            asset,
+            "NEXD Rewards Vault",
+            "sNEXD",
+            vaultAdmin,
+            vaultManager,
+            minAmount,
+            maxAmount,
+            maxPoolSize
         );
-        epochStakingVaultProxy = EpochStakingVault(address(proxy));
-        vm.prank(epochManager);
-        epochStakingVaultProxy.startEpoch();
+
+        vm.prank(vaultManager);
+        epochStakingVault.startEpoch();
 
     }
 
     function testDepositAndWithdraw() public {
         vm.startPrank(tester);
 
-        asset.approve(address(epochStakingVaultProxy), 10000 * 1e18);
-        uint256 sharesMinted = epochStakingVaultProxy.deposit(10000 * 1e18, tester);
+        asset.approve(address(epochStakingVault), 10000 * 1e18);
+        uint256 sharesMinted = epochStakingVault.deposit(10000 * 1e18, tester);
 
         // Check shares and total assets
-        assertEq(epochStakingVaultProxy.balanceOf(tester), sharesMinted);
-        assertEq(epochStakingVaultProxy.totalAssets(), 10000 * 1e18);
+        assertEq(epochStakingVault.balanceOf(tester), sharesMinted);
+        assertEq(epochStakingVault.totalAssets(), 10000 * 1e18);
         // Withdraw assets
-        uint256 assetsWithdrawn = epochStakingVaultProxy.withdraw(10000 * 1e18, tester, tester);
+        uint256 assetsWithdrawn = epochStakingVault.withdraw(10000 * 1e18, tester, tester);
         // Check balances after withdrawal
-        assertEq(epochStakingVaultProxy.balanceOf(tester), 0);
-        assertEq(epochStakingVaultProxy.totalAssets(), 0);
+        assertEq(epochStakingVault.balanceOf(tester), 0);
+        assertEq(epochStakingVault.totalAssets(), 0);
         assertEq(assetsWithdrawn, 10000 * 1e18);
 
         vm.stopPrank();
     }
-
+    /*
    function testAuthorizedUpgrade() public {
         // Deploy a new implementation contract
         EpochStakingVault newImplementation = new EpochStakingVault();
@@ -82,24 +84,24 @@ contract EpochStakingVaultTest is Test {
         bytes memory data = "";
 
         // Upgrade the proxy to the new implementation
-        vm.startPrank(contractAdmin);
-        epochStakingVaultProxy.upgradeToAndCall(address(newImplementation), data);
+        vm.startPrank(vaultAdmin);
+        epochStakingVault.upgradeToAndCall(address(newImplementation), data);
         vm.stopPrank();
 
-        vm.startPrank(contractAdmin);
-        epochStakingVaultProxy.upgradeToAndCall(address(newImplementation), data);
+        vm.startPrank(vaultAdmin);
+        epochStakingVault.upgradeToAndCall(address(newImplementation), data);
         vm.stopPrank();
 
         EpochStakingVault authorizedImplementation = new EpochStakingVault();
 
         vm.startPrank(tester);
         vm.expectRevert();
-        epochStakingVaultProxy.upgradeToAndCall(address(authorizedImplementation), data);
+        epochStakingVault.upgradeToAndCall(address(authorizedImplementation), data);
         vm.stopPrank();
 
         // Verify that the implementation address was updated in the proxy storage
         address storedImplementation =
-            address(uint160(uint256(vm.load(address(epochStakingVaultProxy), implementationSlot))));
+            address(uint160(uint256(vm.load(address(epochStakingVault), implementationSlot))));
         assertEq(storedImplementation, address(newImplementation));
     }
 
@@ -109,7 +111,9 @@ contract EpochStakingVaultTest is Test {
         asset.approve(address(epochStakingVault), 20000 * 1e18);
         vm.expectRevert();
         epochStakingVault.deposit(10000 * 1e18, msg.sender);
-        asset.approve(address(epochStakingVaultProxy), 20000 * 1e18);
-        epochStakingVaultProxy.deposit(10000 * 1e18, msg.sender);
+        asset.approve(address(epochStakingVault), 20000 * 1e18);
+        epochStakingVault.deposit(10000 * 1e18, msg.sender);
     }
+
+    */
 }
