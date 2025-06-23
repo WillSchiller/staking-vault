@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT 
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
 import {EpochStakingVault} from "./EpochStakingVault.sol";
@@ -17,7 +17,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
 
     struct UserInfo {
         uint256 totalRewardsClaimed;
-        uint256 rewardsPerShareDebt; 
+        uint256 rewardsPerShareDebt;
     }
 
     mapping(address user => UserInfo) public userInfo;
@@ -53,9 +53,7 @@ contract StableCoinRewardsVault is EpochStakingVault {
         uint256 _minAmount,
         uint256 _maxAmount,
         uint256 _maxPoolSize
-    )  EpochStakingVault(_asset, _name, _symbol, _vaultAdmin, _vaultManager, _minAmount, _maxAmount, _maxPoolSize) {
-    
-    }
+    ) EpochStakingVault(_asset, _name, _symbol, _vaultAdmin, _vaultManager, _minAmount, _maxAmount, _maxPoolSize) {}
 
     function addRewards(uint256 amount) external onlyRole(VAULT_MANAGER_ROLE) isLocked {
         uint256 totalSupply = totalSupply();
@@ -84,9 +82,8 @@ contract StableCoinRewardsVault is EpochStakingVault {
     function claimableRewards(address user) public view returns (uint256 rewards) {
         UserInfo memory _user = userInfo[user];
         uint256 _shares = balanceOf(user);
-        return _shares.mulDiv(
-            claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor
-        );
+        return
+            _shares.mulDiv(claimableRewardsPerShareAccumulator - _user.rewardsPerShareDebt, 1e27, Math.Rounding.Floor);
     }
 
     function allRewards(address user) public view returns (uint256 rewards) {
@@ -128,11 +125,9 @@ contract StableCoinRewardsVault is EpochStakingVault {
 
     function syncToCurrentEpoch() internal {
         if (
-            (block.timestamp < startTime + DEPOSIT_WINDOW
-            || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD)
-            && totalRewardsPerShareAccumulator != claimableRewardsPerShareAccumulator
-        ) 
-        {
+            (block.timestamp < startTime + DEPOSIT_WINDOW || block.timestamp > startTime + DEPOSIT_WINDOW + LOCK_PERIOD)
+                && totalRewardsPerShareAccumulator != claimableRewardsPerShareAccumulator
+        ) {
             claimableRewardsPerShareAccumulator = totalRewardsPerShareAccumulator;
         }
     }

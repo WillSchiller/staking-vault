@@ -57,11 +57,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         _;
     }
 
-    constructor(
-        StableCoinRewardsVault _vault,
-        ERC20Mock _asset,
-        ERC20Mock _rewardToken
-    ) {
+    constructor(StableCoinRewardsVault _vault, ERC20Mock _asset, ERC20Mock _rewardToken) {
         vault = _vault;
         asset = _asset;
         rewardToken = _rewardToken;
@@ -76,7 +72,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         // Mint asset tokens to the actor so they can deposit
         asset.mint(currentActor, amount);
 
-        (uint256 claimedBefore, ) = vault.userInfo(currentActor);
+        (uint256 claimedBefore,) = vault.userInfo(currentActor);
 
         // Approve & deposit
         vm.startPrank(currentActor);
@@ -84,7 +80,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         vault.deposit(amount, currentActor);
         vm.stopPrank();
 
-        (uint256 claimedAfter, ) = vault.userInfo(currentActor);
+        (uint256 claimedAfter,) = vault.userInfo(currentActor);
         ghost_rewardsClaimed += (claimedAfter - claimedBefore);
 
         // Track in ghost variable
@@ -94,12 +90,9 @@ contract Handler is CommonBase, StdCheats, StdUtils {
     /**
      * @notice Withdraw from the vault, picking an existing actor randomly.
      */
-    function withdraw(
-        uint256 actorSeed,
-        uint256 amount
-    ) public useActor(actorSeed) countCall("withdraw") {
+    function withdraw(uint256 actorSeed, uint256 amount) public useActor(actorSeed) countCall("withdraw") {
         uint256 userShares = vault.balanceOf(currentActor);
-        (uint256 claimedBefore, ) = vault.userInfo(currentActor);
+        (uint256 claimedBefore,) = vault.userInfo(currentActor);
         if (userShares == 0) {
             ghost_zeroWithdrawals++;
             return;
@@ -115,7 +108,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         vault.withdraw(amount, currentActor, currentActor);
         vm.stopPrank();
 
-        (uint256 claimedAfter, ) = vault.userInfo(currentActor);
+        (uint256 claimedAfter,) = vault.userInfo(currentActor);
         ghost_rewardsClaimed += (claimedAfter - claimedBefore);
 
         ghost_withdrawSum += amount;
@@ -124,9 +117,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
     /**
      * @notice Claim rewards for a random actor.
      */
-    function claimRewards(
-        uint256 actorSeed
-    ) public useActor(actorSeed) countCall("claimRewards") {
+    function claimRewards(uint256 actorSeed) public useActor(actorSeed) countCall("claimRewards") {
         uint256 balanceBefore = rewardToken.balanceOf(currentActor);
 
         vm.startPrank(currentActor);
@@ -156,9 +147,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         ghost_rewardsAdded += rewardAmount;
     }
 
-    function donateAsset(
-        uint256 amount
-    ) public createActor countCall("donateAsset") {
+    function donateAsset(uint256 amount) public createActor countCall("donateAsset") {
         vm.startPrank(currentActor);
         asset.mint(address(this), amount);
         asset.transfer(address(vault), amount);
@@ -187,10 +176,10 @@ contract Handler is CommonBase, StdCheats, StdUtils {
         _actors.forEach(func);
     }
 
-    function reduceActors(
-        uint256 acc,
-        function(uint256, address) external returns (uint256) func
-    ) public returns (uint256) {
+    function reduceActors(uint256 acc, function(uint256, address) external returns (uint256) func)
+        public
+        returns (uint256)
+    {
         return _actors.reduce(acc, func);
     }
 
@@ -200,7 +189,7 @@ contract Handler is CommonBase, StdCheats, StdUtils {
 
     // If you do not use ETH-based deposits, you can remove _pay / receive fallback
     function _pay(address to, uint256 amount) internal {
-        (bool s, ) = to.call{value: amount}("");
+        (bool s,) = to.call{value: amount}("");
         require(s, "_pay() failed");
     }
 

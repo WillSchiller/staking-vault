@@ -3,16 +3,12 @@ pragma solidity 0.8.28;
 
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; 
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract EpochStakingVault is
-    ERC4626,
-    AccessControl,
-    ReentrancyGuard
-{
+contract EpochStakingVault is ERC4626, AccessControl, ReentrancyGuard {
     using Math for uint256;
 
     bytes32 public constant VAULT_ADMIN_ROLE = keccak256("VAULT_ADMIN_ROLE");
@@ -42,15 +38,17 @@ contract EpochStakingVault is
     error ModifyingPoolParametersOutsidePermittedInterval();
     error PoolMaxSizeReached();
 
-    modifier isOpen() { 
-        if (block.timestamp >= startTime + DEPOSIT_WINDOW && block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
+    modifier isOpen() {
+        if (block.timestamp >= startTime + DEPOSIT_WINDOW && block.timestamp < startTime + DEPOSIT_WINDOW + LOCK_PERIOD)
+        {
             revert EpochLocked();
         }
         _;
     }
 
-    modifier isLocked() { 
-        if (block.timestamp < startTime + DEPOSIT_WINDOW || block.timestamp >= startTime + DEPOSIT_WINDOW + LOCK_PERIOD) {
+    modifier isLocked() {
+        if (block.timestamp < startTime + DEPOSIT_WINDOW || block.timestamp >= startTime + DEPOSIT_WINDOW + LOCK_PERIOD)
+        {
             revert NotLocked();
         }
         _;
@@ -60,7 +58,6 @@ contract EpochStakingVault is
         if (amount < minAmount) revert AmountTooLow();
         _;
     }
-
 
     constructor(
         IERC20 _asset,

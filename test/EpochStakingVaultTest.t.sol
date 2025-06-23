@@ -9,7 +9,6 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 
 contract EpochStakingVaultTest is Test {
-
     EpochStakingVault public epochStakingVault;
     ERC20Mock public asset;
     address public vaultAdmin = address(0x0001);
@@ -37,22 +36,13 @@ contract EpochStakingVaultTest is Test {
         /// Reward token
         IERC20 rewardToken = IERC20(address(0x0));
 
-
         //deploy implementation contract
         epochStakingVault = new EpochStakingVault(
-            asset,
-            "NEXD Rewards Vault",
-            "sNEXD",
-            vaultAdmin,
-            vaultManager,
-            minAmount,
-            maxAmount,
-            maxPoolSize
+            asset, "NEXD Rewards Vault", "sNEXD", vaultAdmin, vaultManager, minAmount, maxAmount, maxPoolSize
         );
 
         vm.prank(vaultManager);
         epochStakingVault.startEpoch();
-
     }
 
     function testDepositAndWithdraw() public {
@@ -74,7 +64,7 @@ contract EpochStakingVaultTest is Test {
         vm.stopPrank();
     }
     /*
-   function testAuthorizedUpgrade() public {
+    function testAuthorizedUpgrade() public {
         // Deploy a new implementation contract
         EpochStakingVault newImplementation = new EpochStakingVault();
 

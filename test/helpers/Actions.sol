@@ -4,21 +4,16 @@ import "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {StableCoinRewardsVault} from "../../src/StableCoinRewardsVault.sol";
 
-
-
 contract Actions is Test {
-
     uint256 public constant MIN_AMOUNT = 5000000000000000000000; // $100 of tokens @ 0.02 - 18 decimals
-    uint256 public constant MAX_AMOUNT= 5000000000000000000000000; // 100_000 of tokens @ 0.02 - 18 decimals
+    uint256 public constant MAX_AMOUNT = 5000000000000000000000000; // 100_000 of tokens @ 0.02 - 18 decimals
     uint256 public constant MIN_REWARD = 100000000; //  100  - 6 decimals
     uint256 public constant MAX_REWARD = 1000000000000000000; // 1 trillon - 6 decimals
 
-    function boundedDeposit(
-        address user,
-        ERC20Mock asset,
-        StableCoinRewardsVault vault,
-        uint256 rawAmount
-    ) public returns (uint256) {
+    function boundedDeposit(address user, ERC20Mock asset, StableCoinRewardsVault vault, uint256 rawAmount)
+        public
+        returns (uint256)
+    {
         uint256 amt = bound(rawAmount, MIN_AMOUNT, MAX_AMOUNT);
         asset.mint(user, amt);
         vm.startPrank(user);
@@ -28,7 +23,13 @@ contract Actions is Test {
         return amt;
     }
 
-    function simpleDeposit(address user, ERC20Mock asset,  StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
+    function simpleDeposit(
+        address user,
+        ERC20Mock asset,
+        StableCoinRewardsVault vault,
+        uint256 amount,
+        bool expectRevert
+    ) public returns (uint256) {
         asset.mint(user, amount);
         vm.startPrank(user);
         asset.approve(address(vault), amount);
@@ -42,7 +43,10 @@ contract Actions is Test {
         return amount;
     }
 
-    function simpleMint(address user, ERC20Mock asset,  StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
+    function simpleMint(address user, ERC20Mock asset, StableCoinRewardsVault vault, uint256 amount, bool expectRevert)
+        public
+        returns (uint256)
+    {
         asset.mint(user, amount);
         vm.startPrank(user);
         asset.approve(address(vault), amount);
@@ -57,7 +61,10 @@ contract Actions is Test {
         return shares;
     }
 
-    function simpleWithdraw(address user, StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
+    function simpleWithdraw(address user, StableCoinRewardsVault vault, uint256 amount, bool expectRevert)
+        public
+        returns (uint256)
+    {
         vm.startPrank(user);
         uint256 shares;
         if (expectRevert) {
@@ -70,7 +77,10 @@ contract Actions is Test {
         return shares;
     }
 
-    function simpleRedeem(address user, StableCoinRewardsVault vault, uint256 amount, bool expectRevert) public returns (uint256) {
+    function simpleRedeem(address user, StableCoinRewardsVault vault, uint256 amount, bool expectRevert)
+        public
+        returns (uint256)
+    {
         vm.startPrank(user);
         if (expectRevert) {
             vm.expectRevert();
@@ -93,24 +103,17 @@ contract Actions is Test {
         vm.stopPrank();
     }
 
-
-    function boundedWithdraw(
-        address user,
-        StableCoinRewardsVault vault,
-        uint256 rawAmount
-    ) public returns (uint256) {
+    function boundedWithdraw(address user, StableCoinRewardsVault vault, uint256 rawAmount) public returns (uint256) {
         vm.startPrank(user);
         vault.withdraw(rawAmount, user, user);
         vm.stopPrank();
         return rawAmount;
     }
 
-    function boundedReward(
-        address user,
-        ERC20Mock rewardToken,
-        StableCoinRewardsVault vault,
-        uint256 rawAmount
-    ) public returns (uint256) {
+    function boundedReward(address user, ERC20Mock rewardToken, StableCoinRewardsVault vault, uint256 rawAmount)
+        public
+        returns (uint256)
+    {
         uint256 amt = bound(rawAmount, MIN_REWARD, MAX_REWARD);
         rewardToken.mint(user, amt);
         vm.startPrank(user);
@@ -120,7 +123,7 @@ contract Actions is Test {
         return amt;
     }
 
-     function executeDepositWithdrawal(
+    function executeDepositWithdrawal(
         address user,
         ERC20Mock asset,
         StableCoinRewardsVault vault,
@@ -148,7 +151,7 @@ contract Actions is Test {
         }
     }
 
-   function executeAddRewards(
+    function executeAddRewards(
         address user,
         ERC20Mock asset,
         ERC20Mock rewardToken,
@@ -170,14 +173,12 @@ contract Actions is Test {
 
             rewardToken.approve(address(vault), amt);
             vm.expectRevert();
-            vault.addRewards(amt);         
+            vault.addRewards(amt);
             vm.stopPrank();
         } else {
             boundedReward(user, rewardToken, vault, rawAmount);
         }
     }
-
-
 
     function startEpoch(address owner, StableCoinRewardsVault vault) public {
         vm.startPrank(owner);

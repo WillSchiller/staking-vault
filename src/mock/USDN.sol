@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.28;
+
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-
 
 /// @dev a mock UDSC token for testing purposes
 contract USDN is ERC20 {
@@ -13,5 +12,4 @@ contract USDN is ERC20 {
     function decimals() public view override returns (uint8) {
         return 6;
     }
-  
 }

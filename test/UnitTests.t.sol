@@ -48,57 +48,125 @@ contract UnitTests is Test {
 
         //deploy implementation contract
         stableCoinRewardsVault = new StableCoinRewardsVault(
-            asset,
-            "NEXD Rewards Vault",
-            "sNEXD",
-            vaultAdmin,
-            vaultManager,
-            minAmount,
-            maxAmount,
-            maxPoolSize
+            asset, "NEXD Rewards Vault", "sNEXD", vaultAdmin, vaultManager, minAmount, maxAmount, maxPoolSize
         );
 
         // deploy proxy
-       
 
         vm.prank(vaultManager);
         stableCoinRewardsVault.startEpoch();
     }
 
     function testIsOpen(uint256 rawAmount) public {
-        actions.executeDepositWithdrawal(staker1, asset, stableCoinRewardsVault, 0 days, false, "Testing isOpen at 0 day",rawAmount);
-        actions.executeDepositWithdrawal(staker2, asset, stableCoinRewardsVault, 1 days, false, "Testing isOpen at 1 day",rawAmount);
+        actions.executeDepositWithdrawal(
+            staker1, asset, stableCoinRewardsVault, 0 days, false, "Testing isOpen at 0 day", rawAmount
+        );
+        actions.executeDepositWithdrawal(
+            staker2, asset, stableCoinRewardsVault, 1 days, false, "Testing isOpen at 1 day", rawAmount
+        );
         // Testing overlaps if isOpen revert is true at 7 days islocked should be false: see line 84
-        actions.executeDepositWithdrawal(staker3, asset, stableCoinRewardsVault, 7 days, true, "Testing isOpen at 7 days", rawAmount);
-        actions.executeDepositWithdrawal(staker1, asset, stableCoinRewardsVault, 7 days + 1, true, "Testing isOpen at 7 days + 1 second: expect revert", rawAmount);
-        actions.executeDepositWithdrawal(staker2, asset, stableCoinRewardsVault, 30 days, true, "Testing isOpen at 30 days: expect revert", rawAmount);
-        actions.executeDepositWithdrawal(staker3, asset, stableCoinRewardsVault, 30 days + 1, true, "Testing isOpen at 30 days + 1 second: expect revert", rawAmount);
+        actions.executeDepositWithdrawal(
+            staker3, asset, stableCoinRewardsVault, 7 days, true, "Testing isOpen at 7 days", rawAmount
+        );
+        actions.executeDepositWithdrawal(
+            staker1,
+            asset,
+            stableCoinRewardsVault,
+            7 days + 1,
+            true,
+            "Testing isOpen at 7 days + 1 second: expect revert",
+            rawAmount
+        );
+        actions.executeDepositWithdrawal(
+            staker2, asset, stableCoinRewardsVault, 30 days, true, "Testing isOpen at 30 days: expect revert", rawAmount
+        );
+        actions.executeDepositWithdrawal(
+            staker3,
+            asset,
+            stableCoinRewardsVault,
+            30 days + 1,
+            true,
+            "Testing isOpen at 30 days + 1 second: expect revert",
+            rawAmount
+        );
         // Testing overlaps if isOpen revert is true at 97 days islocked should be false
-        actions.executeDepositWithdrawal(staker1, asset, stableCoinRewardsVault, 97 days, false, "Testing isOpen at 97 days", rawAmount);
-        actions.executeDepositWithdrawal(staker2, asset, stableCoinRewardsVault, 97 days, false, "Testing isOpen at 97 days", rawAmount);
+        actions.executeDepositWithdrawal(
+            staker1, asset, stableCoinRewardsVault, 97 days, false, "Testing isOpen at 97 days", rawAmount
+        );
+        actions.executeDepositWithdrawal(
+            staker2, asset, stableCoinRewardsVault, 97 days, false, "Testing isOpen at 97 days", rawAmount
+        );
     }
 
     function testIsLocked(uint256 rawAmount) public {
         actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, rawAmount);
-        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 0 days, true, "Testing isOpen at 0 day", rawAmount);
-        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 1 days, true, "Testing isOpen at 1 day", rawAmount);
+        actions.executeAddRewards(
+            vaultManager, asset, rewardToken, stableCoinRewardsVault, 0 days, true, "Testing isOpen at 0 day", rawAmount
+        );
+        actions.executeAddRewards(
+            vaultManager, asset, rewardToken, stableCoinRewardsVault, 1 days, true, "Testing isOpen at 1 day", rawAmount
+        );
         // Testing overlaps if isOpen revert is true at 7 days islocked should be false
-        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 7 days, false, "Testing isOpen at 1 day: expect revert", rawAmount);
-        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 7 days + 1, false, "Testing isOpen at 7 days + 1 second: expect revert", rawAmount);
-        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 30 days + 1, false, "Testing isOpen at 30 days + 1 second: expect revert", rawAmount);
+        actions.executeAddRewards(
+            vaultManager,
+            asset,
+            rewardToken,
+            stableCoinRewardsVault,
+            7 days,
+            false,
+            "Testing isOpen at 1 day: expect revert",
+            rawAmount
+        );
+        actions.executeAddRewards(
+            vaultManager,
+            asset,
+            rewardToken,
+            stableCoinRewardsVault,
+            7 days + 1,
+            false,
+            "Testing isOpen at 7 days + 1 second: expect revert",
+            rawAmount
+        );
+        actions.executeAddRewards(
+            vaultManager,
+            asset,
+            rewardToken,
+            stableCoinRewardsVault,
+            30 days + 1,
+            false,
+            "Testing isOpen at 30 days + 1 second: expect revert",
+            rawAmount
+        );
         // Testing overlaps if isOpen revert is true at 97 days islocked should be false
-        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 97 days, true, "Testing isOpen at 97 days", rawAmount);
-        actions.executeAddRewards(vaultManager, asset, rewardToken, stableCoinRewardsVault, 97 days + 1, true, "Testing isOpen at 97 days", rawAmount);
+        actions.executeAddRewards(
+            vaultManager,
+            asset,
+            rewardToken,
+            stableCoinRewardsVault,
+            97 days,
+            true,
+            "Testing isOpen at 97 days",
+            rawAmount
+        );
+        actions.executeAddRewards(
+            vaultManager,
+            asset,
+            rewardToken,
+            stableCoinRewardsVault,
+            97 days + 1,
+            true,
+            "Testing isOpen at 97 days",
+            rawAmount
+        );
     }
-
 
     function testIsMinAmount() public {
         uint256 _minAmount = stableCoinRewardsVault.minAmount();
-        actions.simpleMint(staker1, asset, stableCoinRewardsVault, (_minAmount -1), true);
+        actions.simpleMint(staker1, asset, stableCoinRewardsVault, (_minAmount - 1), true);
         actions.simpleMint(staker2, asset, stableCoinRewardsVault, _minAmount, false);
         actions.simpleMint(staker3, asset, stableCoinRewardsVault, (_minAmount + 1), false);
 
-        actions.simpleDeposit(staker1, asset, stableCoinRewardsVault, (_minAmount -1), true);
+        actions.simpleDeposit(staker1, asset, stableCoinRewardsVault, (_minAmount - 1), true);
         actions.simpleDeposit(staker2, asset, stableCoinRewardsVault, _minAmount, false);
         actions.simpleDeposit(staker3, asset, stableCoinRewardsVault, (_minAmount + 1), false);
     }
@@ -123,35 +191,34 @@ contract UnitTests is Test {
     }
 
     function testSimpleRewardsDistribution(uint256 rewards, uint256 amount1, uint256 amount2, uint256 amount3) public {
-        //deposit        
+        //deposit
         amount1 = actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, amount1);
         amount2 = actions.boundedDeposit(staker2, asset, stableCoinRewardsVault, amount2);
         amount3 = actions.boundedDeposit(staker3, asset, stableCoinRewardsVault, amount3);
         uint256 totalDeposits = amount1 + amount2 + amount3;
-        
+
         //move to lock period and add rewards
-        vm.warp(block.timestamp + 7 days+ 1);
+        vm.warp(block.timestamp + 7 days + 1);
         rewards = actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
-        
+
         // rewards should == 0 until epoch finishe
         actions.claimAndExpectRevert(staker1, stableCoinRewardsVault);
         actions.claimAndExpectRevert(staker2, stableCoinRewardsVault);
         actions.claimAndExpectRevert(staker3, stableCoinRewardsVault);
-        
+
         vm.warp(block.timestamp + 98 days);
-        
+
         // check rewards
         uint256 rewardsPerShare = (rewards * 1e27) / totalDeposits;
-        
+
         uint256 expectedRewards1 = (amount1 * rewardsPerShare) / 1e27;
         stableCoinRewardsVault.claimRewards(staker1);
         assertApproxEqAbs(rewardToken.balanceOf(staker1), expectedRewards1, 100000);
-        
 
         uint256 expectedRewards2 = (amount2 * rewardsPerShare) / 1e27;
         stableCoinRewardsVault.claimRewards(staker2);
         assertEq(rewardToken.balanceOf(staker2), expectedRewards2);
-        
+
         uint256 expectedRewards3 = (amount3 * rewardsPerShare) / 1e27;
         stableCoinRewardsVault.claimRewards(staker3);
         assertEq(rewardToken.balanceOf(staker3), expectedRewards3);
@@ -163,15 +230,14 @@ contract UnitTests is Test {
 
     // Test mechamism that updates unclaimed rewards when user does multiple deposits and withdrawals
     function testUnclainedRewards(uint256 rewards, uint256 amount1, uint256 amount2, uint256 amount3) public {
-
         amount1 = actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, amount1);
         amount2 = actions.boundedDeposit(staker2, asset, stableCoinRewardsVault, amount2);
         amount3 = actions.boundedDeposit(staker3, asset, stableCoinRewardsVault, amount3);
 
-        vm.warp(block.timestamp + 8 days);  
+        vm.warp(block.timestamp + 8 days);
 
         rewards = actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
-        
+
         vm.warp(block.timestamp + 98 days);
         actions.startEpoch(vaultManager, stableCoinRewardsVault);
 
@@ -184,28 +250,28 @@ contract UnitTests is Test {
         rewards += actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
 
         vm.warp(block.timestamp + 98 days);
-        actions.startEpoch(vaultManager, stableCoinRewardsVault);  
+        actions.startEpoch(vaultManager, stableCoinRewardsVault);
 
         amount1 += actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, amount1);
         amount2 += actions.boundedDeposit(staker2, asset, stableCoinRewardsVault, amount2);
         amount3 += actions.boundedDeposit(staker3, asset, stableCoinRewardsVault, amount3);
 
-        vm.warp(block.timestamp + 8 days); 
+        vm.warp(block.timestamp + 8 days);
 
         rewards += actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
 
         vm.warp(block.timestamp + 98 days);
-        actions.startEpoch(vaultManager, stableCoinRewardsVault); 
+        actions.startEpoch(vaultManager, stableCoinRewardsVault);
 
         // Test unclaimed rewards with various amount remaining (75%, 66%, 0%)
-        amount1 -= actions.boundedWithdraw(staker1, stableCoinRewardsVault, (amount1 / 4)); 
+        amount1 -= actions.boundedWithdraw(staker1, stableCoinRewardsVault, (amount1 / 4));
         amount2 -= actions.boundedWithdraw(staker2, stableCoinRewardsVault, (amount2 / 3));
         amount3 -= actions.boundedWithdraw(staker3, stableCoinRewardsVault, (amount3 / 1));
 
-        vm.warp(block.timestamp + 8 days); 
+        vm.warp(block.timestamp + 8 days);
 
         rewards += actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
-      
+
         vm.warp(block.timestamp + 1000 days);
 
         stableCoinRewardsVault.claimRewards(staker1);
@@ -220,22 +286,22 @@ contract UnitTests is Test {
     }
 
     // make deposits and try to claim the rewards in the same epoch
-    function testCannotClaimCurrentEpochRewards(uint256 rewards, uint256 amount1, uint256 amount2, uint256 amount3) public {
-
+    function testCannotClaimCurrentEpochRewards(uint256 rewards, uint256 amount1, uint256 amount2, uint256 amount3)
+        public
+    {
         // deposit
         amount1 = actions.boundedDeposit(staker1, asset, stableCoinRewardsVault, amount1);
         amount2 = actions.boundedDeposit(staker2, asset, stableCoinRewardsVault, amount2);
         amount3 = actions.boundedDeposit(staker3, asset, stableCoinRewardsVault, amount3);
 
         // warp to lock period
-        vm.warp(block.timestamp + 8 days);  
+        vm.warp(block.timestamp + 8 days);
         rewards = actions.boundedReward(vaultManager, rewardToken, stableCoinRewardsVault, rewards);
 
         // claim rewards in the same epoch
         actions.claimAndExpectRevert(staker1, stableCoinRewardsVault);
         actions.claimAndExpectRevert(staker2, stableCoinRewardsVault);
         actions.claimAndExpectRevert(staker3, stableCoinRewardsVault);
-
     }
 
     function testOnlyManagerCanStartEpoch() public {
@@ -244,5 +310,4 @@ contract UnitTests is Test {
         vm.warp(block.timestamp + 97 days); //end current epoch
         actions.startEpoch(vaultManager, stableCoinRewardsVault);
     }
-
 }

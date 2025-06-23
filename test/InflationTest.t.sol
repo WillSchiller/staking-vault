@@ -50,14 +50,7 @@ contract InflationTest is Test {
 
         //deploy implementation contract
         stableCoinRewardsVault = new StableCoinRewardsVault(
-            asset,
-            "NEXD Rewards Vault",
-            "sNEXD",
-            vaultAdmin,
-            vaultManager,
-            minAmount,
-            maxAmount,
-            maxPoolSize
+            asset, "NEXD Rewards Vault", "sNEXD", vaultAdmin, vaultManager, minAmount, maxAmount, maxPoolSize
         );
 
         // deploy proxy
@@ -68,12 +61,10 @@ contract InflationTest is Test {
         stableCoinRewardsVault.startEpoch();
     }
 
-
-
     // infation test
 
     function testInflateAssets() public {
-        uint256 bigAmount = 20_000_000_000_000_000 * 1e18; 
+        uint256 bigAmount = 20_000_000_000_000_000 * 1e18;
         uint256 midAmount = 10_000 * 1e18;
 
         // Hacker mints 1 share
@@ -96,21 +87,19 @@ contract InflationTest is Test {
         actions.simpleRedeem(staker1, stableCoinRewardsVault, usershares, false);
 
         assert(asset.balanceOf(staker1) >= midAmount);
-        assert(asset.balanceOf(hacker)<= bigAmount + 1);
-
+        assert(asset.balanceOf(hacker) <= bigAmount + 1);
     }
 
-     function testFuzzInflateAssets(uint256 amount, uint256 bigAmount) public {
+    function testFuzzInflateAssets(uint256 amount, uint256 bigAmount) public {
         amount = bound(amount, 1e9, 10_000_000 * 1e18);
         bigAmount = bound(bigAmount, 1e9, 10_000_000 * 1e18);
-        
-        
+
         // Hacker mints 1 share
         uint256 hackerShares = actions.simpleMint(hacker, asset, stableCoinRewardsVault, 1, false);
 
         // mint assets
         vm.prank(deployer);
-        asset.mint(hacker, bigAmount);  
+        asset.mint(hacker, bigAmount);
         // Hacker inflates assets in pool
         vm.prank(hacker);
         asset.transfer(address(stableCoinRewardsVault), bigAmount);
@@ -125,8 +114,6 @@ contract InflationTest is Test {
         actions.simpleRedeem(staker1, stableCoinRewardsVault, usershares, false);
 
         assert(asset.balanceOf(staker1) >= amount - (amount / 1e9));
-        assert(asset.balanceOf(hacker)  <= bigAmount + 1 + (bigAmount / 1e9));
-
+        assert(asset.balanceOf(hacker) <= bigAmount + 1 + (bigAmount / 1e9));
     }
-
 }

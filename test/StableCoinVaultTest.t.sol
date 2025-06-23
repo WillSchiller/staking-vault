@@ -31,7 +31,7 @@ contract StableCoinRewardsVaultTest is Test {
         address rewardTokenAddr = address(0x7AC8519283B1bba6d683FF555A12318Ec9265229);
         vm.etch(rewardTokenAddr, bytecode);
         rewardToken = ERC20Mock(rewardTokenAddr);
-    
+
         //NEXD token
         address assetTargetAddr = address(0x3858567501fbf030BD859EE831610fCc710319f4);
         vm.etch(assetTargetAddr, bytecode);
@@ -42,20 +42,11 @@ contract StableCoinRewardsVaultTest is Test {
 
         //deploy implementation contract
         stableCoinRewardsVault = new StableCoinRewardsVault(
-            asset,
-            "NEXD Rewards Vault",
-            "sNEXD",
-            vaultAdmin,
-            vaultManager,
-            minAmount,
-            maxAmount,
-            maxPoolSize
+            asset, "NEXD Rewards Vault", "sNEXD", vaultAdmin, vaultManager, minAmount, maxAmount, maxPoolSize
         );
 
-       
         vm.prank(vaultManager);
         stableCoinRewardsVault.startEpoch();
-
     }
 
     function testDepositAndWithdraw() public {
@@ -76,5 +67,4 @@ contract StableCoinRewardsVaultTest is Test {
 
         vm.stopPrank();
     }
-
 }

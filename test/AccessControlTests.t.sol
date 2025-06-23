@@ -16,8 +16,7 @@ contract AccessControlTests is Test {
     ERC20Mock public rewardToken;
 
     bytes32 public constant VAULT_ADMIN_ROLE = keccak256("VAULT_ADMIN_ROLE");
-    bytes32 public constant VAULT_MANAGER_ROLE =
-        keccak256("VAULT_MANAGER_ROLE");
+    bytes32 public constant VAULT_MANAGER_ROLE = keccak256("VAULT_MANAGER_ROLE");
 
     address public admin_1 = address(0x0001);
     address public admin_2 = address(0x0002);
@@ -44,29 +43,18 @@ contract AccessControlTests is Test {
         bytes memory bytecode = address(implementation).code;
 
         //USDT token
-        address rewardTokenAddr = address(
-            0x7AC8519283B1bba6d683FF555A12318Ec9265229
-        );
+        address rewardTokenAddr = address(0x7AC8519283B1bba6d683FF555A12318Ec9265229);
         vm.etch(rewardTokenAddr, bytecode);
         rewardToken = ERC20Mock(rewardTokenAddr);
 
         //NEXD token
-        address assetTargetAddr = address(
-            0x3858567501fbf030BD859EE831610fCc710319f4
-        );
+        address assetTargetAddr = address(0x3858567501fbf030BD859EE831610fCc710319f4);
         vm.etch(assetTargetAddr, bytecode);
         asset = ERC20Mock(assetTargetAddr);
 
         //deploy implementation contract
         stableCoinRewardsVault = new StableCoinRewardsVault(
-            asset,
-            "NEXD Rewards Vault",
-            "sNEXD",
-            admin_1,
-            manager_1,
-            minAmount,
-            maxAmount,
-            maxPoolSize
+            asset, "NEXD Rewards Vault", "sNEXD", admin_1, manager_1, minAmount, maxAmount, maxPoolSize
         );
 
         // deploy proxy
